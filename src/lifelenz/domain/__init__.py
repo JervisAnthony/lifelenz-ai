@@ -6,6 +6,7 @@ from lifelenz.domain.activity import (
     WorkoutRecord,
     WorkoutType,
 )
+from lifelenz.domain.body import BodyMeasurementRecord
 from lifelenz.domain.exceptions import (
     DomainValidationError,
     InvalidIdentifierError,
@@ -34,6 +35,7 @@ from lifelenz.domain.taxonomy import (
 
 __all__ = [
     "BeverageType",
+    "BodyMeasurementRecord",
     "ConfidenceLevel",
     "DailyActivityRecord",
     "DailyNutritionRecord",

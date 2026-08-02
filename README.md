@@ -17,8 +17,9 @@ taxonomy for wellness categories, metrics, units, data sources, confidence, and 
 severity. Shared domain foundations provide record identifiers, aware time ranges, common
 metadata, and reusable validation. Concrete domain records capture completed sleep sessions,
 daily activity totals, completed workouts, hydration events, meal nutrition, and daily
-nutrition summaries with explicitly validated measurements. Repositories, analytics,
-baselines, insight generation, data ingestion, APIs, and user interfaces do not yet exist.
+nutrition summaries, and neutral body measurements with explicitly validated values.
+Repositories, analytics, personal baselines, trends, insight generation, data ingestion,
+APIs, and user interfaces do not yet exist.
 
 The planned MVP capability areas are:
 
