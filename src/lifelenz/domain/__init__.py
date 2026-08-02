@@ -7,6 +7,12 @@ from lifelenz.domain.activity import (
     WorkoutType,
 )
 from lifelenz.domain.body import BodyMeasurementRecord
+from lifelenz.domain.checkins import (
+    CheckInTag,
+    MoodCategory,
+    SubjectiveScore,
+    SubjectiveWellnessCheckIn,
+)
 from lifelenz.domain.exceptions import (
     DomainValidationError,
     InvalidIdentifierError,
@@ -36,6 +42,7 @@ from lifelenz.domain.taxonomy import (
 __all__ = [
     "BeverageType",
     "BodyMeasurementRecord",
+    "CheckInTag",
     "ConfidenceLevel",
     "DailyActivityRecord",
     "DailyNutritionRecord",
@@ -52,12 +59,15 @@ __all__ = [
     "MealType",
     "MeasurementUnit",
     "MetricIdentifier",
+    "MoodCategory",
     "PerceivedExertion",
     "RecordId",
     "RecordMetadata",
     "SleepQuality",
     "SleepRecord",
     "SleepStageDurations",
+    "SubjectiveScore",
+    "SubjectiveWellnessCheckIn",
     "TimeRange",
     "WellnessCategory",
     "WorkoutRecord",

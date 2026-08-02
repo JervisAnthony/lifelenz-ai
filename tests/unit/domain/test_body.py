@@ -274,8 +274,8 @@ def test_body_measurement_is_immutable(field_name: str) -> None:
         setattr(record, field_name, None)
 
 
-def test_domain_package_exposes_complete_body_domain_api() -> None:
-    """The body tests authoritatively define the complete public domain API."""
+def test_domain_package_exposes_body_domain_api() -> None:
+    """Public exports preserve every prior and body-domain type."""
     expected_exports = {
         "BeverageType": BeverageType,
         "BodyMeasurementRecord": BodyMeasurementRecord,
@@ -307,6 +307,6 @@ def test_domain_package_exposes_complete_body_domain_api() -> None:
         "WorkoutType": WorkoutType,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object
