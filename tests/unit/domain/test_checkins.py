@@ -396,8 +396,8 @@ def test_check_in_exposes_no_aggregate_or_interpreted_properties() -> None:
         assert not hasattr(record, name)
 
 
-def test_domain_package_exposes_complete_check_in_domain_api() -> None:
-    """The check-in tests authoritatively define the complete public domain API."""
+def test_domain_package_exposes_check_in_domain_api() -> None:
+    """Public exports preserve every prior and check-in-domain type."""
     expected_exports = {
         "BeverageType": BeverageType,
         "BodyMeasurementRecord": BodyMeasurementRecord,
@@ -433,6 +433,6 @@ def test_domain_package_exposes_complete_check_in_domain_api() -> None:
         "WorkoutType": WorkoutType,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object

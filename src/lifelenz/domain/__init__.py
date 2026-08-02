@@ -13,6 +13,14 @@ from lifelenz.domain.checkins import (
     SubjectiveScore,
     SubjectiveWellnessCheckIn,
 )
+from lifelenz.domain.cycle import (
+    CycleSymptom,
+    CycleSymptomEntry,
+    MenstrualBleedingRecord,
+    MenstrualCycleRecord,
+    MenstrualFlow,
+    SymptomIntensity,
+)
 from lifelenz.domain.exceptions import (
     DomainValidationError,
     InvalidIdentifierError,
@@ -44,6 +52,8 @@ __all__ = [
     "BodyMeasurementRecord",
     "CheckInTag",
     "ConfidenceLevel",
+    "CycleSymptom",
+    "CycleSymptomEntry",
     "DailyActivityRecord",
     "DailyNutritionRecord",
     "DataSource",
@@ -58,6 +68,9 @@ __all__ = [
     "MealRecord",
     "MealType",
     "MeasurementUnit",
+    "MenstrualBleedingRecord",
+    "MenstrualCycleRecord",
+    "MenstrualFlow",
     "MetricIdentifier",
     "MoodCategory",
     "PerceivedExertion",
@@ -68,6 +81,7 @@ __all__ = [
     "SleepStageDurations",
     "SubjectiveScore",
     "SubjectiveWellnessCheckIn",
+    "SymptomIntensity",
     "TimeRange",
     "WellnessCategory",
     "WorkoutRecord",
