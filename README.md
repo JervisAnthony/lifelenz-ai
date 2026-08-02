@@ -15,10 +15,10 @@ LifeLenz-AI is at version 0.1.0 and in the foundation stage. The repository curr
 contains an installable `lifelenz` Python package, development tooling, and a controlled
 taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
 severity. Shared domain foundations provide record identifiers, aware time ranges, common
-metadata, and reusable validation. The first concrete domain record captures completed
-sleep sessions with validated durations and optional stage, quality, and interruption data.
-Repositories, analytics, insight generation, data ingestion, and user interfaces do not yet
-exist.
+metadata, and reusable validation. Concrete domain records capture completed sleep sessions,
+daily activity totals, and completed workouts with explicitly validated measurements.
+Repositories, analytics, baselines, insight generation, data ingestion, APIs, and user
+interfaces do not yet exist.
 
 The planned MVP capability areas are:
 
