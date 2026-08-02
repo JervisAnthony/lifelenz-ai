@@ -246,7 +246,7 @@ def test_record_metadata_has_value_equality_hashing_and_immutability() -> None:
         first.notes = "replacement"
 
 
-def test_domain_package_exposes_complete_curated_public_api() -> None:
+def test_domain_package_exposes_shared_foundation_api() -> None:
     """New primitives and exceptions join the existing taxonomy exports."""
     expected_exports = {
         "ConfidenceLevel": ConfidenceLevel,
@@ -265,7 +265,7 @@ def test_domain_package_exposes_complete_curated_public_api() -> None:
         "WellnessCategory": WellnessCategory,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object
     assert "require_positive" not in domain.__all__

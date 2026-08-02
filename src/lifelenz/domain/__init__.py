@@ -8,6 +8,7 @@ from lifelenz.domain.exceptions import (
     InvalidTimestampError,
 )
 from lifelenz.domain.primitives import RecordId, RecordMetadata, TimeRange
+from lifelenz.domain.sleep import SleepQuality, SleepRecord, SleepStageDurations
 from lifelenz.domain.taxonomy import (
     ConfidenceLevel,
     DataSource,
@@ -30,6 +31,9 @@ __all__ = [
     "MetricIdentifier",
     "RecordId",
     "RecordMetadata",
+    "SleepQuality",
+    "SleepRecord",
+    "SleepStageDurations",
     "TimeRange",
     "WellnessCategory",
 ]
