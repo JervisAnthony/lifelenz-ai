@@ -1,14 +1,49 @@
 # LifeLenz-AI
 
-LifeLenz-AI is an AI-powered personal wellness intelligence platform intended to help people bring together wellness data, understand personal patterns, and receive explainable insights over time.
+LifeLenz-AI is an early-stage personal wellness intelligence project. It is intended to
+help people organize longitudinal lifestyle data, understand patterns relative to their
+own baselines, and receive transparent, non-diagnostic observations.
+
+The core value proposition is context: instead of treating sleep, activity, hydration,
+mood, energy, and stress as isolated readings, LifeLenz-AI aims to make changes and
+co-occurring patterns understandable over time. Observations will use conservative
+language and expose the data and rules behind them.
 
 ## Project status
 
-The project is in its initial foundation stage. The repository currently provides an installable Python package and development tooling; wellness-domain capabilities have not yet been implemented.
+LifeLenz-AI is at version 0.1.0 and in the foundation stage. The repository currently
+contains an installable `lifelenz` Python package, packaging configuration, and development
+tooling. It does not yet implement wellness records, analytics, insight generation, data
+ingestion, or user interfaces.
+
+The planned MVP capability areas are:
+
+- Structured records for sleep, activity, hydration, basic nutrition, body measurements,
+  mood, energy, and stress
+- Personal profiles and goals
+- Personal-baseline analytics and trend summaries
+- Deterministic, explainable wellness observations
+- Typed wellness summaries
+
+Manual entry and structured-data imports are planned for the MVP. Direct wearable
+connections and broad wellness-platform integrations are future work, not current
+capabilities.
+
+## Architecture
+
+The first development phase uses a layered, standard-library-first design. Domain types
+and validation form the base; repository abstractions manage records; pure analytics
+calculate baselines and trends; deterministic rules produce explainable observations; and
+services coordinate these parts into summaries. Packages for these layers will be added
+only with their first working capability.
+
+See [Architecture](docs/architecture.md) for the intended dependency direction and design
+decisions.
 
 ## Development setup
 
-LifeLenz-AI requires Python 3.13 or later. From PowerShell on Windows, create and activate a virtual environment, then install the package and development tools:
+LifeLenz-AI requires Python 3.13 or later. In Windows PowerShell, create and activate a
+virtual environment, then install the package with development dependencies:
 
 ```powershell
 py -3.13 -m venv lifelenz-env
@@ -17,22 +52,39 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-Run the test suite:
+Run the test suite, lint checks, and formatting check:
 
 ```powershell
 python -m pytest
-```
-
-Run lint checks and verify formatting:
-
-```powershell
 python -m ruff check .
 python -m ruff format --check .
 ```
 
-LifeLenz provides wellness intelligence and is not a medical diagnostic system. Its output should not replace advice from qualified healthcare professionals.
+Apply the configured formatter when needed:
+
+```powershell
+python -m ruff format .
+```
+
+More contributor guidance is available in [Development standards](docs/development.md).
+
+## Documentation
+
+- [Product scope](docs/product-scope.md) defines the intended users, MVP, non-goals, and
+  safety boundary.
+- [Architecture](docs/architecture.md) describes the intended first-phase design.
+- [Development standards](docs/development.md) defines the contributor workflow and
+  engineering expectations.
+- [Roadmap](docs/roadmap.md) separates near-term milestones from future work.
+
+## Wellness and medical disclaimer
+
+LifeLenz-AI is intended for general wellness reflection and education. It is not a medical
+device and is not intended to diagnose, predict, treat, or prevent disease; recommend
+medications or treatments; provide emergency guidance; or replace qualified medical
+advice. Users should consult an appropriate healthcare professional about medical concerns
+and contact local emergency services when urgent help is needed.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
+LifeLenz-AI is available under the [MIT License](LICENSE).
