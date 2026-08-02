@@ -14,8 +14,9 @@ language and expose the data and rules behind them.
 LifeLenz-AI is at version 0.1.0 and in the foundation stage. The repository currently
 contains an installable `lifelenz` Python package, development tooling, and a controlled
 taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
-severity. It does not yet implement wellness records, analytics, insight generation, data
-ingestion, or user interfaces.
+severity. Shared domain foundations provide record identifiers, aware time ranges, common
+metadata, and reusable validation. The project does not yet implement concrete wellness
+records, analytics, insight generation, data ingestion, or user interfaces.
 
 The planned MVP capability areas are:
 

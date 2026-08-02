@@ -201,7 +201,7 @@ def test_relationship_mappings_are_immutable() -> None:
         )
 
 
-def test_domain_package_exports_only_public_taxonomy_types() -> None:
+def test_domain_package_exports_public_taxonomy_types() -> None:
     """Consumers can import the controlled types from the domain package."""
     expected_exports = {
         "ConfidenceLevel": ConfidenceLevel,
@@ -212,6 +212,6 @@ def test_domain_package_exports_only_public_taxonomy_types() -> None:
         "WellnessCategory": WellnessCategory,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_type in expected_exports.items():
         assert getattr(domain, name) is expected_type
