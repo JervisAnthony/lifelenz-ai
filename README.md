@@ -16,9 +16,9 @@ contains an installable `lifelenz` Python package, development tooling, and a co
 taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
 severity. Shared domain foundations provide record identifiers, aware time ranges, common
 metadata, and reusable validation. Concrete domain records capture completed sleep sessions,
-daily activity totals, and completed workouts with explicitly validated measurements.
-Repositories, analytics, baselines, insight generation, data ingestion, APIs, and user
-interfaces do not yet exist.
+daily activity totals, completed workouts, hydration events, meal nutrition, and daily
+nutrition summaries with explicitly validated measurements. Repositories, analytics,
+baselines, insight generation, data ingestion, APIs, and user interfaces do not yet exist.
 
 The planned MVP capability areas are:
 

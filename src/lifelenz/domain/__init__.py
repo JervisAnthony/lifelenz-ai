@@ -13,6 +13,14 @@ from lifelenz.domain.exceptions import (
     InvalidTimeRangeError,
     InvalidTimestampError,
 )
+from lifelenz.domain.intake import (
+    BeverageType,
+    DailyNutritionRecord,
+    HydrationRecord,
+    MealNutrition,
+    MealRecord,
+    MealType,
+)
 from lifelenz.domain.primitives import RecordId, RecordMetadata, TimeRange
 from lifelenz.domain.sleep import SleepQuality, SleepRecord, SleepStageDurations
 from lifelenz.domain.taxonomy import (
@@ -25,15 +33,21 @@ from lifelenz.domain.taxonomy import (
 )
 
 __all__ = [
+    "BeverageType",
     "ConfidenceLevel",
     "DailyActivityRecord",
+    "DailyNutritionRecord",
     "DataSource",
     "DomainValidationError",
+    "HydrationRecord",
     "InsightSeverity",
     "InvalidIdentifierError",
     "InvalidNumericValueError",
     "InvalidTimeRangeError",
     "InvalidTimestampError",
+    "MealNutrition",
+    "MealRecord",
+    "MealType",
     "MeasurementUnit",
     "MetricIdentifier",
     "PerceivedExertion",
