@@ -18,9 +18,10 @@ severity. Shared domain foundations provide record identifiers, aware time range
 metadata, and reusable validation. Concrete domain records capture completed sleep sessions,
 daily activity totals, completed workouts, hydration events, meal nutrition, and daily
 nutrition summaries, neutral body measurements, and subjective mood, energy, stress, and
-optional motivation check-ins with explicitly validated values. Personal profiles, goals,
-repositories, analytics, personal baselines, trends, correlations, insight generation, data
-ingestion, APIs, and user interfaces do not yet exist.
+optional motivation check-ins with explicitly validated values. They also capture menstrual
+bleeding observations and user-supplied menstrual-cycle date ranges. Personal profiles,
+goals, repositories, analytics, personal baselines, trends, correlations, predictions,
+insight generation, data ingestion, APIs, and user interfaces do not yet exist.
 
 The planned MVP capability areas are:
 
