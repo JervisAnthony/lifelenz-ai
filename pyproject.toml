@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lifelenz-ai"
+version = "0.1.0"
+description = "Personal wellness intelligence with explainable, data-informed insights."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+authors = [
+    { name = "Jervis Anthony Saldanha" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.9",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lifelenz = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "-q",
+    "-ra",
+]
+testpaths = ["tests"]
+xfail_strict = true
+filterwarnings = [
+    "error",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".nox",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "lifelenz-env",
+]
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "RUF",
+    "SIM",
+    "UP",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["lifelenz"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = false
+

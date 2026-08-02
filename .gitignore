@@ -1,0 +1,49 @@
+# Virtual environments
+lifelenz-env/
+.venv/
+venv/
+env/
+
+# Python bytecode and interpreter caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test, lint, type-check, and coverage caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Packaging and build output
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# IDE and editor workspace files
+.idea/
+.vscode/
+*.code-workspace
+*.suo
+*.user
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
