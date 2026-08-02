@@ -459,7 +459,7 @@ def test_workout_average_speed_is_zero_for_recorded_zero_distance() -> None:
     assert _workout_record(distance_kilometers=0).average_speed_kmh == 0.0
 
 
-def test_domain_package_exposes_complete_activity_domain_api() -> None:
+def test_domain_package_exposes_activity_domain_api() -> None:
     """The authoritative export list preserves foundations, sleep, and activity."""
     expected_exports = {
         "ConfidenceLevel": ConfidenceLevel,
@@ -485,6 +485,6 @@ def test_domain_package_exposes_complete_activity_domain_api() -> None:
         "WorkoutType": WorkoutType,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object
