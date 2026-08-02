@@ -1,5 +1,11 @@
 """Public domain foundations for LifeLenz wellness data."""
 
+from lifelenz.domain.activity import (
+    DailyActivityRecord,
+    PerceivedExertion,
+    WorkoutRecord,
+    WorkoutType,
+)
 from lifelenz.domain.exceptions import (
     DomainValidationError,
     InvalidIdentifierError,
@@ -20,6 +26,7 @@ from lifelenz.domain.taxonomy import (
 
 __all__ = [
     "ConfidenceLevel",
+    "DailyActivityRecord",
     "DataSource",
     "DomainValidationError",
     "InsightSeverity",
@@ -29,6 +36,7 @@ __all__ = [
     "InvalidTimestampError",
     "MeasurementUnit",
     "MetricIdentifier",
+    "PerceivedExertion",
     "RecordId",
     "RecordMetadata",
     "SleepQuality",
@@ -36,4 +44,6 @@ __all__ = [
     "SleepStageDurations",
     "TimeRange",
     "WellnessCategory",
+    "WorkoutRecord",
+    "WorkoutType",
 ]

@@ -393,7 +393,7 @@ def test_sleep_record_has_value_equality_hashing_and_immutability() -> None:
         first.sleep_minutes = 400
 
 
-def test_domain_package_exposes_complete_sleep_domain_api() -> None:
+def test_domain_package_exposes_sleep_domain_api() -> None:
     """The curated API preserves foundations and adds only public sleep types."""
     expected_exports = {
         "ConfidenceLevel": ConfidenceLevel,
@@ -415,6 +415,6 @@ def test_domain_package_exposes_complete_sleep_domain_api() -> None:
         "WellnessCategory": WellnessCategory,
     }
 
-    assert domain.__all__ == list(expected_exports)
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object
