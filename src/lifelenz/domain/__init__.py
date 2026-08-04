@@ -28,6 +28,13 @@ from lifelenz.domain.exceptions import (
     InvalidTimeRangeError,
     InvalidTimestampError,
 )
+from lifelenz.domain.goals import (
+    GoalDirection,
+    GoalId,
+    GoalStatus,
+    GoalTarget,
+    WellnessGoal,
+)
 from lifelenz.domain.intake import (
     BeverageType,
     DailyNutritionRecord,
@@ -65,6 +72,10 @@ __all__ = [
     "DailyNutritionRecord",
     "DataSource",
     "DomainValidationError",
+    "GoalDirection",
+    "GoalId",
+    "GoalStatus",
+    "GoalTarget",
     "HydrationRecord",
     "InsightSeverity",
     "InvalidIdentifierError",
@@ -95,6 +106,7 @@ __all__ = [
     "TrackedWellnessDomain",
     "WeekStart",
     "WellnessCategory",
+    "WellnessGoal",
     "WellnessProfile",
     "WorkoutRecord",
     "WorkoutType",
