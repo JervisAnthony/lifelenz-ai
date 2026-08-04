@@ -6,6 +6,7 @@ from lifelenz.repositories import (
     DuplicateEntityError,
     EntityNotFoundError,
     RepositoryError,
+    RepositoryPersistenceError,
 )
 
 
@@ -13,7 +14,9 @@ def test_repository_error_derives_from_exception() -> None:
     assert issubclass(RepositoryError, Exception)
 
 
-@pytest.mark.parametrize("exception_type", [EntityNotFoundError, DuplicateEntityError])
+@pytest.mark.parametrize(
+    "exception_type", [EntityNotFoundError, DuplicateEntityError, RepositoryPersistenceError]
+)
 def test_specific_errors_derive_from_repository_error(
     exception_type: type[RepositoryError],
 ) -> None:
@@ -21,7 +24,8 @@ def test_specific_errors_derive_from_repository_error(
 
 
 @pytest.mark.parametrize(
-    "exception_type", [RepositoryError, EntityNotFoundError, DuplicateEntityError]
+    "exception_type",
+    [RepositoryError, EntityNotFoundError, DuplicateEntityError, RepositoryPersistenceError],
 )
 def test_custom_messages_are_preserved(exception_type: type[RepositoryError]) -> None:
     error = exception_type("wellness goal goal-123")
@@ -29,7 +33,9 @@ def test_custom_messages_are_preserved(exception_type: type[RepositoryError]) ->
     assert str(error) == "wellness goal goal-123"
 
 
-@pytest.mark.parametrize("exception_type", [EntityNotFoundError, DuplicateEntityError])
+@pytest.mark.parametrize(
+    "exception_type", [EntityNotFoundError, DuplicateEntityError, RepositoryPersistenceError]
+)
 def test_specific_errors_are_catchable_through_base_type(
     exception_type: type[RepositoryError],
 ) -> None:
@@ -38,7 +44,8 @@ def test_specific_errors_are_catchable_through_base_type(
 
 
 @pytest.mark.parametrize(
-    "exception_type", [RepositoryError, EntityNotFoundError, DuplicateEntityError]
+    "exception_type",
+    [RepositoryError, EntityNotFoundError, DuplicateEntityError, RepositoryPersistenceError],
 )
 def test_exceptions_require_no_provider_specific_attributes(
     exception_type: type[RepositoryError],
@@ -48,3 +55,9 @@ def test_exceptions_require_no_provider_specific_attributes(
     assert not hasattr(error, "http_status")
     assert not hasattr(error, "provider")
     assert not hasattr(error, "retry_after")
+
+
+def test_persistence_error_is_direct_and_distinct_from_entity_errors() -> None:
+    assert RepositoryPersistenceError.__bases__ == (RepositoryError,)
+    assert not issubclass(RepositoryPersistenceError, EntityNotFoundError)
+    assert not issubclass(RepositoryPersistenceError, DuplicateEntityError)

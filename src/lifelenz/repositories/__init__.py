@@ -11,11 +11,17 @@ from lifelenz.repositories.exceptions import (
     DuplicateEntityError,
     EntityNotFoundError,
     RepositoryError,
+    RepositoryPersistenceError,
 )
 from lifelenz.repositories.memory import (
     InMemoryGoalRepository,
     InMemoryProfileRepository,
     InMemoryWellnessRecordRepository,
+)
+from lifelenz.repositories.sqlite import (
+    SQLiteGoalRepository,
+    SQLiteProfileRepository,
+    SQLiteWellnessRecordRepository,
 )
 
 __all__ = [
@@ -27,6 +33,10 @@ __all__ = [
     "InMemoryWellnessRecordRepository",
     "ProfileRepository",
     "RepositoryError",
+    "RepositoryPersistenceError",
+    "SQLiteGoalRepository",
+    "SQLiteProfileRepository",
+    "SQLiteWellnessRecordRepository",
     "WellnessRecord",
     "WellnessRecordRepository",
     "WellnessRecordType",

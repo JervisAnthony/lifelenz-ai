@@ -907,7 +907,7 @@ def test_application_api_and_layer_boundaries_are_exact() -> None:
         lifelenz.analytics.__all__
     )
     assert len(lifelenz.domain.__all__) == 48
-    assert len(lifelenz.repositories.__all__) == 11
+    assert len(lifelenz.repositories.__all__) == 15
     assert len(lifelenz.analytics.__all__) == 11
 
 

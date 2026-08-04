@@ -23,9 +23,14 @@ bleeding observations, user-supplied menstrual-cycle date ranges, and privacy-co
 wellness profiles with tracking preferences, plus user-defined wellness goals. Framework-independent
 repository contracts define storage-neutral operations for profiles, goals, and wellness records.
 Deterministic in-memory implementations support tests and early application development; they are
-process-local, non-durable, and lose all data when the process ends. Database and filesystem
-persistence and serialization do not yet exist. Framework-independent application services
-coordinate repositories, enforce profile existence for profile-owned operations, and translate
+process-local, non-durable, and lose all data when the process ends. Durable SQLite repositories now
+store profiles, goals, and wellness records in a local database file using explicit deterministic
+JSON serialization. They preserve typed domain values, canonical units, original aware timestamp
+offsets, and data across repository instances and process restarts. This local persistence backend is
+suitable for development and the upcoming API foundation, but it is not encrypted by this
+implementation and is not a hosted or multi-user database service. Framework-independent
+application services coordinate repositories, enforce profile existence for profile-owned
+operations, and translate
 expected missing-entity failures. The profile, goal, and record services do not calculate analytics
 or goal progress. Deterministic
 personal-baseline analytics summarize supported canonical metrics from a person's own recorded
@@ -40,10 +45,12 @@ future values nor recommend actions. A framework-independent wellness-summary wo
 an existing profile, reads its stored records with optional metadata-time filtering, and produces one
 structured canonical-unit summary per supported metric. Metrics with at least one sample include a
 baseline, while metrics with at least two samples also include a trend. The result is structured data,
-not user-facing medical or coaching text. Durable and database persistence, serialization,
-authentication and user-ownership accounts, goal progress, correlations, recommendations,
-predictions, import workflows, REST APIs, web and mobile applications (including Android and iOS),
-and medical decision support do not yet exist.
+not user-facing medical or coaching text. Authentication, authorization, and user-ownership
+accounts, hosted database deployment, cloud
+synchronization, goal progress, correlations, recommendations, predictions, import workflows, REST
+APIs, notifications, production monitoring, web and mobile applications (including Android and iOS),
+and medical decision support do not yet exist. The project does not yet claim production readiness,
+regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
 
 The planned MVP capability areas are:
 
