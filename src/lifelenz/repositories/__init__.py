@@ -12,11 +12,19 @@ from lifelenz.repositories.exceptions import (
     EntityNotFoundError,
     RepositoryError,
 )
+from lifelenz.repositories.memory import (
+    InMemoryGoalRepository,
+    InMemoryProfileRepository,
+    InMemoryWellnessRecordRepository,
+)
 
 __all__ = [
     "DuplicateEntityError",
     "EntityNotFoundError",
     "GoalRepository",
+    "InMemoryGoalRepository",
+    "InMemoryProfileRepository",
+    "InMemoryWellnessRecordRepository",
     "ProfileRepository",
     "RepositoryError",
     "WellnessRecord",
