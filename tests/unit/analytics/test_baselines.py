@@ -741,10 +741,14 @@ def test_public_analytics_api_is_exact_deterministic_and_isolated() -> None:
         "AnalyticsError",
         "AnalyticsValidationError",
         "InsufficientBaselineDataError",
+        "InsufficientTrendDataError",
         "MetricSample",
         "MetricSampleExtractor",
         "PersonalBaseline",
         "PersonalBaselineCalculator",
+        "TrendDirection",
+        "WellnessTrend",
+        "WellnessTrendCalculator",
     ]
 
     assert lifelenz.analytics.__all__ == expected

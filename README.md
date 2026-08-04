@@ -30,9 +30,14 @@ expected missing-entity failures. They do not calculate analytics or goal progre
 personal-baseline analytics summarize supported canonical metrics from a person's own recorded
 observations using count, mean, median, minimum, maximum, and population standard deviation.
 Baselines preserve canonical units and use record metadata timestamps; they provide no medical
-interpretation, population comparison, recommended target, or health classification. Authentication,
-goal progress, trends, correlations, recommendations, predictions, insight generation, import
-workflows, APIs, and user interfaces do not yet exist.
+interpretation, population comparison, recommended target, or health classification. Deterministic
+basic trend analytics report first and last values, absolute and percentage change when defined,
+least-squares slope per day, and neutral increasing, decreasing, or stable direction for supported
+canonical metrics. Optional time ranges use metadata timestamps. Direction is purely mathematical:
+increasing does not mean healthy, decreasing does not mean unhealthy, and trends neither predict
+future values nor recommend actions. Authentication, goal progress, correlations, recommendations,
+predictions, explainable observations, user-facing summaries, import workflows, APIs, web and mobile
+applications (including Android and iOS), and medical decision support do not yet exist.
 
 The planned MVP capability areas are:
 
