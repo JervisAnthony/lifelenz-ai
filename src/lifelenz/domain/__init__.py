@@ -37,6 +37,13 @@ from lifelenz.domain.intake import (
     MealType,
 )
 from lifelenz.domain.primitives import RecordId, RecordMetadata, TimeRange
+from lifelenz.domain.profile import (
+    MeasurementSystem,
+    ProfileId,
+    TrackedWellnessDomain,
+    WeekStart,
+    WellnessProfile,
+)
 from lifelenz.domain.sleep import SleepQuality, SleepRecord, SleepStageDurations
 from lifelenz.domain.taxonomy import (
     ConfidenceLevel,
@@ -67,6 +74,7 @@ __all__ = [
     "MealNutrition",
     "MealRecord",
     "MealType",
+    "MeasurementSystem",
     "MeasurementUnit",
     "MenstrualBleedingRecord",
     "MenstrualCycleRecord",
@@ -74,6 +82,7 @@ __all__ = [
     "MetricIdentifier",
     "MoodCategory",
     "PerceivedExertion",
+    "ProfileId",
     "RecordId",
     "RecordMetadata",
     "SleepQuality",
@@ -83,7 +92,10 @@ __all__ = [
     "SubjectiveWellnessCheckIn",
     "SymptomIntensity",
     "TimeRange",
+    "TrackedWellnessDomain",
+    "WeekStart",
     "WellnessCategory",
+    "WellnessProfile",
     "WorkoutRecord",
     "WorkoutType",
 ]
