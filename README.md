@@ -27,7 +27,7 @@ process-local, non-durable, and lose all data when the process ends. Durable SQL
 store profiles, goals, and wellness records in a local database file using explicit deterministic
 JSON serialization. They preserve typed domain values, canonical units, original aware timestamp
 offsets, and data across repository instances and process restarts. This local persistence backend is
-suitable for development and the upcoming API foundation, but it is not encrypted by this
+suitable for development and local API composition, but it is not encrypted by this
 implementation and is not a hosted or multi-user database service. Framework-independent
 application services coordinate repositories, enforce profile existence for profile-owned
 operations, and translate
@@ -46,11 +46,16 @@ an existing profile, reads its stored records with optional metadata-time filter
 structured canonical-unit summary per supported metric. Metrics with at least one sample include a
 baseline, while metrics with at least two samples also include a trend. The result is structured data,
 not user-facing medical or coaching text. Authentication, authorization, and user-ownership
-accounts, hosted database deployment, cloud
-synchronization, goal progress, correlations, recommendations, predictions, import workflows, REST
-APIs, notifications, production monitoring, web and mobile applications (including Android and iOS),
-and medical decision support do not yet exist. The project does not yet claim production readiness,
+accounts, hosted database deployment, cloud synchronization, goal progress, correlations,
+recommendations, predictions, import workflows, resource REST APIs, notifications, production
+monitoring, web and mobile applications (including Android and iOS), and medical decision support do
+not yet exist. The project does not yet claim production readiness,
 regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
+
+LifeLenz-AI now also includes a versioned FastAPI foundation for local development. It exposes only
+deterministic system metadata, liveness, and SQLite-readiness endpoints; profile, goal,
+wellness-record, and wellness-summary HTTP endpoints are not implemented. The API is unauthenticated,
+does not provide user accounts or authorization, and does not make the local SQLite content encrypted.
 
 The planned MVP capability areas are:
 
@@ -101,6 +106,36 @@ Apply the configured formatter when needed:
 ```powershell
 python -m ruff format .
 ```
+
+## Local API
+
+Start the development API from the activated project environment:
+
+```powershell
+python -m uvicorn lifelenz.api.app:create_app --factory --reload
+```
+
+The default database is `./data/lifelenz.db`. Explicit application construction creates its parent
+directory when needed. Configuration is read from `LIFELENZ_ENVIRONMENT`,
+`LIFELENZ_DATABASE_PATH`, `LIFELENZ_API_PREFIX`, and `LIFELENZ_DOCS_ENABLED`; no `.env` parser is
+included.
+
+Available routes are:
+
+```text
+GET /
+GET /health
+GET /ready
+GET /api/v1
+GET /api/v1/health
+GET /api/v1/ready
+```
+
+Interactive documentation is available at `/docs` and `/redoc` unless documentation is disabled.
+This is not a complete backend or public production service. Authentication, authorization, user
+accounts, resource endpoints, hosted deployment, cloud synchronization, notifications, production
+monitoring, web or mobile UI (including Android and iOS), and medical decision support remain out of
+scope.
 
 More contributor guidance is available in [Development standards](docs/development.md).
 

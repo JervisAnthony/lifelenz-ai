@@ -35,6 +35,13 @@ pip-wheel-metadata/
 .env.*
 !.env.example
 
+# Local SQLite application data
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # IDE and editor workspace files
 .idea/
 .vscode/
@@ -46,4 +53,3 @@ pip-wheel-metadata/
 .DS_Store
 Thumbs.db
 Desktop.ini
-
