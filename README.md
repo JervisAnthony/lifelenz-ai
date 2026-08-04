@@ -26,7 +26,8 @@ Deterministic in-memory implementations support tests and early application deve
 process-local, non-durable, and lose all data when the process ends. Database and filesystem
 persistence and serialization do not yet exist. Framework-independent application services
 coordinate repositories, enforce profile existence for profile-owned operations, and translate
-expected missing-entity failures. They do not calculate analytics or goal progress. Deterministic
+expected missing-entity failures. The profile, goal, and record services do not calculate analytics
+or goal progress. Deterministic
 personal-baseline analytics summarize supported canonical metrics from a person's own recorded
 observations using count, mean, median, minimum, maximum, and population standard deviation.
 Baselines preserve canonical units and use record metadata timestamps; they provide no medical
@@ -35,9 +36,14 @@ basic trend analytics report first and last values, absolute and percentage chan
 least-squares slope per day, and neutral increasing, decreasing, or stable direction for supported
 canonical metrics. Optional time ranges use metadata timestamps. Direction is purely mathematical:
 increasing does not mean healthy, decreasing does not mean unhealthy, and trends neither predict
-future values nor recommend actions. Authentication, goal progress, correlations, recommendations,
-predictions, explainable observations, user-facing summaries, import workflows, APIs, web and mobile
-applications (including Android and iOS), and medical decision support do not yet exist.
+future values nor recommend actions. A framework-independent wellness-summary workflow now requires
+an existing profile, reads its stored records with optional metadata-time filtering, and produces one
+structured canonical-unit summary per supported metric. Metrics with at least one sample include a
+baseline, while metrics with at least two samples also include a trend. The result is structured data,
+not user-facing medical or coaching text. Durable and database persistence, serialization,
+authentication and user-ownership accounts, goal progress, correlations, recommendations,
+predictions, import workflows, REST APIs, web and mobile applications (including Android and iOS),
+and medical decision support do not yet exist.
 
 The planned MVP capability areas are:
 

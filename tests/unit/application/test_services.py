@@ -1013,10 +1013,14 @@ def test_application_public_api_is_exact_sorted_unique_and_isolated() -> None:
         "ApplicationValidationError",
         "GoalNotFoundError",
         "GoalService",
+        "MetricWellnessSummary",
         "ProfileNotFoundError",
         "ProfileService",
         "WellnessRecordNotFoundError",
         "WellnessRecordService",
+        "WellnessSummary",
+        "WellnessSummaryService",
+        "WellnessSummaryUnavailableError",
     ]
 
     assert lifelenz.application.__all__ == expected

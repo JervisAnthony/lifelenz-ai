@@ -8,6 +8,7 @@ from lifelenz.application import (
     GoalNotFoundError,
     ProfileNotFoundError,
     WellnessRecordNotFoundError,
+    WellnessSummaryUnavailableError,
 )
 
 APPLICATION_EXCEPTIONS = (
@@ -15,6 +16,7 @@ APPLICATION_EXCEPTIONS = (
     ProfileNotFoundError,
     GoalNotFoundError,
     WellnessRecordNotFoundError,
+    WellnessSummaryUnavailableError,
 )
 
 
@@ -55,3 +57,13 @@ def test_application_exceptions_have_no_provider_or_http_metadata(
     assert not hasattr(error, "http_status")
     assert not hasattr(error, "provider")
     assert not hasattr(error, "retry_after")
+
+
+def test_summary_unavailable_is_distinct_from_validation_and_not_found_errors() -> None:
+    assert WellnessSummaryUnavailableError.__bases__ == (ApplicationError,)
+    assert not issubclass(WellnessSummaryUnavailableError, ApplicationValidationError)
+    assert not issubclass(WellnessSummaryUnavailableError, ProfileNotFoundError)
+    assert not issubclass(WellnessSummaryUnavailableError, WellnessRecordNotFoundError)
+    error = WellnessSummaryUnavailableError("no observations")
+    assert not hasattr(error, "severity")
+    assert not hasattr(error, "logger")
