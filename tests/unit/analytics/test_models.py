@@ -7,7 +7,13 @@ from math import inf, nan
 
 import pytest
 
-from lifelenz.analytics import AnalyticsValidationError, MetricSample, PersonalBaseline
+from lifelenz.analytics import (
+    AnalyticsValidationError,
+    MetricSample,
+    PersonalBaseline,
+    TrendDirection,
+    WellnessTrend,
+)
 from lifelenz.domain import MeasurementUnit, MetricIdentifier, ProfileId, RecordId, TimeRange
 from lifelenz.domain.taxonomy import DEFAULT_UNIT_BY_METRIC
 
@@ -66,6 +72,27 @@ def make_baseline(**overrides: object) -> PersonalBaseline:
     }
     values.update(overrides)
     return PersonalBaseline(**values)  # type: ignore[arg-type]
+
+
+def make_trend(**overrides: object) -> WellnessTrend:
+    values = {
+        "profile_id": PROFILE_ID,
+        "metric": MetricIdentifier.STEPS,
+        "unit": MeasurementUnit.COUNT,
+        "sample_count": 2,
+        "first_value": 10,
+        "last_value": 20,
+        "absolute_change": 10.0,
+        "percentage_change": 100.0,
+        "slope_per_day": 10.0,
+        "direction": TrendDirection.INCREASING,
+        "stability_tolerance": 0.0,
+        "first_observed_at": OBSERVED_AT,
+        "last_observed_at": OBSERVED_AT + timedelta(days=1),
+        "time_range": None,
+    }
+    values.update(overrides)
+    return WellnessTrend(**values)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("value", [0, -2, 3, 4.5, 10**1000])
@@ -311,3 +338,313 @@ def test_personal_baseline_exposes_no_interpretive_properties() -> None:
         "confidence",
     ):
         assert not hasattr(baseline, attribute)
+
+
+def test_trend_direction_has_exact_neutral_members_values_and_order() -> None:
+    assert list(TrendDirection) == [
+        TrendDirection.INCREASING,
+        TrendDirection.DECREASING,
+        TrendDirection.STABLE,
+    ]
+    assert [member.value for member in TrendDirection] == [
+        "increasing",
+        "decreasing",
+        "stable",
+    ]
+    assert len({member.value for member in TrendDirection}) == 3
+    assert str(TrendDirection.INCREASING) == "increasing"
+    assert not {
+        "improving",
+        "worsening",
+        "healthy",
+        "unhealthy",
+        "optimal",
+        "concerning",
+        "recommended",
+    } & {member.value for member in TrendDirection}
+
+
+def test_wellness_trend_preserves_valid_fields_equality_hashability_and_immutability() -> None:
+    time_range = TimeRange(OBSERVED_AT, OBSERVED_AT + timedelta(days=2))
+    trend = make_trend(time_range=time_range)
+
+    assert trend.profile_id is PROFILE_ID
+    assert trend.metric is MetricIdentifier.STEPS
+    assert trend.unit is MeasurementUnit.COUNT
+    assert trend.sample_count == 2
+    assert trend.first_value == 10
+    assert trend.last_value == 20
+    assert trend.absolute_change == 10.0
+    assert trend.percentage_change == 100.0
+    assert trend.slope_per_day == 10.0
+    assert trend.direction is TrendDirection.INCREASING
+    assert trend.stability_tolerance == 0.0
+    assert trend.time_range is time_range
+    assert trend == make_trend(time_range=time_range)
+    assert hash(trend) == hash(make_trend(time_range=time_range))
+    with pytest.raises((FrozenInstanceError, AttributeError)):
+        trend.slope_per_day = 0.0  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {
+            "first_value": 20,
+            "last_value": 10,
+            "absolute_change": -10.0,
+            "percentage_change": -50.0,
+            "slope_per_day": -10.0,
+            "direction": TrendDirection.DECREASING,
+        },
+        {
+            "first_value": 10.5,
+            "last_value": 10.5,
+            "absolute_change": 0.0,
+            "percentage_change": 0.0,
+            "slope_per_day": 0.0,
+            "direction": TrendDirection.STABLE,
+        },
+        {
+            "first_value": 0,
+            "last_value": 5,
+            "absolute_change": 5.0,
+            "percentage_change": None,
+            "slope_per_day": 5.0,
+            "direction": TrendDirection.INCREASING,
+        },
+        {
+            "first_value": -10,
+            "last_value": -5,
+            "absolute_change": 5.0,
+            "percentage_change": 50.0,
+            "slope_per_day": 0.5,
+            "stability_tolerance": 0.5,
+            "direction": TrendDirection.STABLE,
+        },
+        {
+            "first_value": -10,
+            "last_value": -15,
+            "absolute_change": -5.0,
+            "percentage_change": -50.0,
+            "slope_per_day": -0.5,
+            "stability_tolerance": 0.5,
+            "direction": TrendDirection.STABLE,
+        },
+        {
+            "first_observed_at": OBSERVED_AT,
+            "last_observed_at": OBSERVED_AT,
+        },
+    ],
+)
+def test_wellness_trend_accepts_neutral_mathematical_variants(overrides: dict[str, object]) -> None:
+    assert isinstance(make_trend(**overrides), WellnessTrend)
+
+
+def test_wellness_trend_derived_properties() -> None:
+    changed = make_trend()
+    unchanged = make_trend(
+        first_value=4,
+        last_value=4,
+        absolute_change=0.0,
+        percentage_change=0.0,
+        slope_per_day=0.0,
+        direction=TrendDirection.STABLE,
+        last_observed_at=OBSERVED_AT,
+    )
+    zero_start = make_trend(
+        first_value=0,
+        last_value=2,
+        absolute_change=2.0,
+        percentage_change=None,
+        slope_per_day=2.0,
+    )
+
+    assert changed.observation_span == timedelta(days=1)
+    assert changed.has_percentage_change is True
+    assert changed.net_changed is True
+    assert unchanged.observation_span == timedelta(0)
+    assert unchanged.net_changed is False
+    assert zero_start.has_percentage_change is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("profile_id", PROFILE_ID.value),
+        ("profile_id", RECORD_ID),
+        ("metric", MetricIdentifier.STEPS.value),
+        ("metric", UnrelatedEnum.VALUE),
+        ("unit", MeasurementUnit.COUNT.value),
+        ("unit", UnrelatedEnum.VALUE),
+        ("direction", TrendDirection.INCREASING.value),
+        ("direction", UnrelatedEnum.VALUE),
+        ("time_range", "all-time"),
+    ],
+)
+def test_wellness_trend_rejects_invalid_typed_fields(field: str, value: object) -> None:
+    with pytest.raises(AnalyticsValidationError, match=field):
+        make_trend(**{field: value})
+
+
+def test_wellness_trend_rejects_noncanonical_unit() -> None:
+    with pytest.raises(AnalyticsValidationError, match="unit must be 'count'"):
+        make_trend(unit=MeasurementUnit.HOURS)
+
+
+@pytest.mark.parametrize("sample_count", [True, False, 0, 1, -1, 2.0, "2"])
+def test_wellness_trend_requires_at_least_two_plain_integer_samples(sample_count: object) -> None:
+    with pytest.raises(AnalyticsValidationError, match="sample_count"):
+        make_trend(sample_count=sample_count)
+
+
+@pytest.mark.parametrize("field", ["first_value", "last_value"])
+@pytest.mark.parametrize("value", [True, nan, inf, -inf, "1", None])
+def test_wellness_trend_requires_finite_plain_numeric_endpoints(
+    field: str,
+    value: object,
+) -> None:
+    with pytest.raises(AnalyticsValidationError, match=field):
+        make_trend(**{field: value})
+
+
+@pytest.mark.parametrize("value", [0, True, nan, inf, -inf, "10", None])
+def test_wellness_trend_requires_finite_float_absolute_change(value: object) -> None:
+    with pytest.raises(AnalyticsValidationError, match="absolute_change"):
+        make_trend(absolute_change=value)
+
+
+def test_wellness_trend_rejects_inconsistent_absolute_change() -> None:
+    with pytest.raises(AnalyticsValidationError, match="must equal"):
+        make_trend(absolute_change=9.999)
+
+
+def test_wellness_trend_rejects_endpoint_values_without_finite_float_difference() -> None:
+    with pytest.raises(AnalyticsValidationError, match="finite floating-point"):
+        make_trend(
+            first_value=-(10**1000),
+            last_value=10**1000,
+            absolute_change=0.0,
+            percentage_change=0.0,
+        )
+
+
+def test_wellness_trend_rejects_infinite_difference_from_finite_float_endpoints() -> None:
+    with pytest.raises(AnalyticsValidationError, match="finite floating-point difference"):
+        make_trend(
+            first_value=-1e308,
+            last_value=1e308,
+            absolute_change=0.0,
+            percentage_change=0.0,
+        )
+
+
+@pytest.mark.parametrize("value", [0, True, nan, inf, -inf, "100", {}])
+def test_wellness_trend_requires_valid_percentage_change_type_and_finiteness(
+    value: object,
+) -> None:
+    with pytest.raises(AnalyticsValidationError, match="percentage_change"):
+        make_trend(percentage_change=value)
+
+
+def test_wellness_trend_requires_none_percentage_for_zero_start() -> None:
+    with pytest.raises(AnalyticsValidationError, match="must be None"):
+        make_trend(
+            first_value=0,
+            last_value=5,
+            absolute_change=5.0,
+            percentage_change=0.0,
+        )
+
+
+def test_wellness_trend_requires_percentage_for_nonzero_start() -> None:
+    with pytest.raises(AnalyticsValidationError, match="finite float"):
+        make_trend(percentage_change=None)
+
+
+def test_wellness_trend_rejects_inconsistent_percentage_change() -> None:
+    with pytest.raises(AnalyticsValidationError, match="endpoint percentage"):
+        make_trend(percentage_change=99.0)
+
+
+def test_wellness_trend_rejects_nonfinite_derived_percentage_change() -> None:
+    with pytest.raises(AnalyticsValidationError, match="finite percentage_change"):
+        make_trend(
+            first_value=5e-324,
+            last_value=1.0,
+            absolute_change=1.0,
+            percentage_change=0.0,
+        )
+
+
+@pytest.mark.parametrize("value", [0, True, nan, inf, -inf, "1", None])
+def test_wellness_trend_requires_finite_float_slope(value: object) -> None:
+    with pytest.raises(AnalyticsValidationError, match="slope_per_day"):
+        make_trend(slope_per_day=value)
+
+
+@pytest.mark.parametrize("value", [0, True, -0.1, nan, inf, -inf, "0", None])
+def test_wellness_trend_requires_nonnegative_finite_float_tolerance(value: object) -> None:
+    with pytest.raises(AnalyticsValidationError, match="stability_tolerance"):
+        make_trend(stability_tolerance=value)
+
+
+@pytest.mark.parametrize(
+    "slope, tolerance, wrong_direction",
+    [
+        (1.0, 0.0, TrendDirection.STABLE),
+        (-1.0, 0.0, TrendDirection.STABLE),
+        (0.0, 0.0, TrendDirection.INCREASING),
+        (0.5, 0.5, TrendDirection.INCREASING),
+        (-0.5, 0.5, TrendDirection.DECREASING),
+    ],
+)
+def test_wellness_trend_rejects_direction_inconsistent_with_slope_and_tolerance(
+    slope: float,
+    tolerance: float,
+    wrong_direction: TrendDirection,
+) -> None:
+    with pytest.raises(AnalyticsValidationError, match="direction must match"):
+        make_trend(
+            slope_per_day=slope,
+            stability_tolerance=tolerance,
+            direction=wrong_direction,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("first_observed_at", datetime(2026, 1, 2)),
+        ("last_observed_at", date(2026, 1, 3)),
+        ("first_observed_at", datetime(2026, 1, 2, tzinfo=MissingOffsetTimezone())),
+        ("last_observed_at", datetime(2026, 1, 3, tzinfo=BrokenTimezone())),
+    ],
+)
+def test_wellness_trend_rejects_invalid_observation_timestamps(
+    field: str,
+    value: object,
+) -> None:
+    with pytest.raises(AnalyticsValidationError, match=field):
+        make_trend(**{field: value})
+
+
+def test_wellness_trend_rejects_reversed_observation_bounds() -> None:
+    with pytest.raises(AnalyticsValidationError, match="must not follow"):
+        make_trend(first_observed_at=OBSERVED_AT + timedelta(days=2))
+
+
+def test_wellness_trend_has_no_interpretive_or_predictive_properties() -> None:
+    trend = make_trend()
+
+    for attribute in (
+        "forecast",
+        "recommendation",
+        "is_healthy",
+        "is_improving",
+        "is_worsening",
+        "confidence",
+        "anomaly",
+        "goal_progress",
+    ):
+        assert not hasattr(trend, attribute)

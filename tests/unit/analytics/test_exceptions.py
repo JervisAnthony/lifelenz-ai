@@ -6,6 +6,7 @@ from lifelenz.analytics import (
     AnalyticsError,
     AnalyticsValidationError,
     InsufficientBaselineDataError,
+    InsufficientTrendDataError,
 )
 from lifelenz.application import ApplicationError
 from lifelenz.domain import DomainValidationError
@@ -14,7 +15,7 @@ from lifelenz.repositories import RepositoryError
 
 @pytest.mark.parametrize(
     "exception_type",
-    [AnalyticsValidationError, InsufficientBaselineDataError],
+    [AnalyticsValidationError, InsufficientBaselineDataError, InsufficientTrendDataError],
 )
 def test_specific_exceptions_derive_from_analytics_error(exception_type: type[Exception]) -> None:
     assert issubclass(exception_type, AnalyticsError)
@@ -34,7 +35,12 @@ def test_analytics_errors_are_independent_of_other_layers(foreign_base: type[Exc
 
 @pytest.mark.parametrize(
     "exception_type",
-    [AnalyticsError, AnalyticsValidationError, InsufficientBaselineDataError],
+    [
+        AnalyticsError,
+        AnalyticsValidationError,
+        InsufficientBaselineDataError,
+        InsufficientTrendDataError,
+    ],
 )
 def test_custom_messages_are_preserved_and_catchable(exception_type: type[AnalyticsError]) -> None:
     error = exception_type("analytics context")
@@ -44,8 +50,16 @@ def test_custom_messages_are_preserved_and_catchable(exception_type: type[Analyt
         raise error
 
 
-def test_exceptions_do_not_add_provider_or_transport_attributes() -> None:
-    error = AnalyticsValidationError("invalid")
-
+@pytest.mark.parametrize(
+    "error",
+    [AnalyticsValidationError("invalid"), InsufficientTrendDataError("insufficient")],
+)
+def test_exceptions_do_not_add_provider_or_transport_attributes(error: AnalyticsError) -> None:
     for attribute in ("status_code", "http_status", "provider", "retry_after", "severity"):
         assert not hasattr(error, attribute)
+
+
+def test_trend_insufficiency_is_distinct_from_validation_and_baseline_insufficiency() -> None:
+    assert not issubclass(InsufficientTrendDataError, AnalyticsValidationError)
+    assert not issubclass(InsufficientTrendDataError, InsufficientBaselineDataError)
+    assert not issubclass(InsufficientBaselineDataError, InsufficientTrendDataError)

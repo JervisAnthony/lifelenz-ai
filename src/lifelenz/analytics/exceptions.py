@@ -11,3 +11,7 @@ class AnalyticsValidationError(AnalyticsError):
 
 class InsufficientBaselineDataError(AnalyticsError):
     """Raised when filtering leaves no samples for a requested baseline."""
+
+
+class InsufficientTrendDataError(AnalyticsError):
+    """Raised when fewer than two samples remain for a requested trend."""
