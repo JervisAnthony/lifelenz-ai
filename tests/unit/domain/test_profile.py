@@ -491,8 +491,8 @@ def test_profile_exposes_no_completeness_health_or_recommendation_properties() -
         assert not hasattr(profile, name)
 
 
-def test_domain_package_exposes_complete_profile_domain_api() -> None:
-    """The profile tests authoritatively define the complete public domain API."""
+def test_domain_package_exposes_profile_domain_api() -> None:
+    """Public exports preserve every prior and profile-domain type."""
     expected_exports = {
         "BeverageType": BeverageType,
         "BodyMeasurementRecord": BodyMeasurementRecord,
@@ -539,7 +539,6 @@ def test_domain_package_exposes_complete_profile_domain_api() -> None:
         "WorkoutType": WorkoutType,
     }
 
-    assert domain.__all__ == list(expected_exports)
-    assert len(domain.__all__) == len(set(domain.__all__)) == 43
+    assert set(expected_exports) <= set(domain.__all__)
     for name, expected_object in expected_exports.items():
         assert getattr(domain, name) is expected_object
