@@ -26,8 +26,12 @@ Deterministic in-memory implementations support tests and early application deve
 process-local, non-durable, and lose all data when the process ends. Database and filesystem
 persistence and serialization do not yet exist. Framework-independent application services
 coordinate repositories, enforce profile existence for profile-owned operations, and translate
-expected missing-entity failures. They do not calculate analytics or goal progress. Authentication,
-personal baselines, trends, correlations, recommendations, predictions, insight generation, import
+expected missing-entity failures. They do not calculate analytics or goal progress. Deterministic
+personal-baseline analytics summarize supported canonical metrics from a person's own recorded
+observations using count, mean, median, minimum, maximum, and population standard deviation.
+Baselines preserve canonical units and use record metadata timestamps; they provide no medical
+interpretation, population comparison, recommended target, or health classification. Authentication,
+goal progress, trends, correlations, recommendations, predictions, insight generation, import
 workflows, APIs, and user interfaces do not yet exist.
 
 The planned MVP capability areas are:
