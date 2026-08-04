@@ -19,9 +19,10 @@ metadata, and reusable validation. Concrete domain records capture completed sle
 daily activity totals, completed workouts, hydration events, meal nutrition, and daily
 nutrition summaries, neutral body measurements, and subjective mood, energy, stress, and
 optional motivation check-ins with explicitly validated values. They also capture menstrual
-bleeding observations and user-supplied menstrual-cycle date ranges. Personal profiles,
-goals, repositories, analytics, personal baselines, trends, correlations, predictions,
-insight generation, data ingestion, APIs, and user interfaces do not yet exist.
+bleeding observations, user-supplied menstrual-cycle date ranges, and privacy-conscious
+wellness profiles with tracking preferences. Authentication, accounts, goals, repositories,
+persistence, application services, analytics, personal baselines, trends, correlations,
+predictions, insight generation, data ingestion, APIs, and user interfaces do not yet exist.
 
 The planned MVP capability areas are:
 
