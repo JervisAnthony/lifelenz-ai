@@ -20,10 +20,12 @@ daily activity totals, completed workouts, hydration events, meal nutrition, and
 nutrition summaries, neutral body measurements, and subjective mood, energy, stress, and
 optional motivation check-ins with explicitly validated values. They also capture menstrual
 bleeding observations, user-supplied menstrual-cycle date ranges, and privacy-conscious
-wellness profiles with tracking preferences, plus user-defined wellness goals. Authentication,
-repositories, persistence, application services, goal progress, analytics, personal baselines,
-trends, correlations, recommendations, predictions, insight generation, data ingestion, APIs,
-and user interfaces do not yet exist.
+wellness profiles with tracking preferences, plus user-defined wellness goals. Framework-independent
+repository contracts now define storage-neutral operations for profiles, goals, and wellness
+records. Concrete repositories, in-memory storage, database or filesystem persistence,
+authentication, application services, goal progress, analytics, personal baselines, trends,
+correlations, recommendations, predictions, insight generation, import workflows, APIs, and user
+interfaces do not yet exist.
 
 The planned MVP capability areas are:
 
