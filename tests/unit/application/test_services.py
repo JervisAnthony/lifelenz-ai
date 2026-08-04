@@ -1029,4 +1029,4 @@ def test_application_public_api_is_exact_sorted_unique_and_isolated() -> None:
     assert not set(expected) & set(lifelenz.domain.__all__)
     assert not set(expected) & set(lifelenz.repositories.__all__)
     assert len(lifelenz.domain.__all__) == 48
-    assert len(lifelenz.repositories.__all__) == 11
+    assert len(lifelenz.repositories.__all__) == 15

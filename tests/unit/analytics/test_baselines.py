@@ -759,7 +759,7 @@ def test_public_analytics_api_is_exact_deterministic_and_isolated() -> None:
     assert not set(expected) & set(lifelenz.repositories.__all__)
     assert not set(expected) & set(lifelenz.application.__all__)
     assert len(lifelenz.domain.__all__) == 48
-    assert len(lifelenz.repositories.__all__) == 11
+    assert len(lifelenz.repositories.__all__) == 15
     assert len(lifelenz.application.__all__) == 12
 
 

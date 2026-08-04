@@ -11,3 +11,7 @@ class EntityNotFoundError(RepositoryError):
 
 class DuplicateEntityError(RepositoryError):
     """Raised when an operation requiring a new identity receives an existing one."""
+
+
+class RepositoryPersistenceError(RepositoryError):
+    """Raised when a storage failure prevents a repository operation from completing."""

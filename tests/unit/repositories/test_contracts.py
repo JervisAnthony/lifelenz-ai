@@ -96,6 +96,10 @@ EXPECTED_REPOSITORY_EXPORTS = (
     "InMemoryWellnessRecordRepository",
     "ProfileRepository",
     "RepositoryError",
+    "RepositoryPersistenceError",
+    "SQLiteGoalRepository",
+    "SQLiteProfileRepository",
+    "SQLiteWellnessRecordRepository",
     "WellnessRecord",
     "WellnessRecordRepository",
     "WellnessRecordType",
@@ -408,10 +412,12 @@ def test_domain_public_api_remains_unchanged() -> None:
     assert not set(EXPECTED_REPOSITORY_EXPORTS) & set(exports)
 
 
-def test_repository_package_exports_only_intended_in_memory_implementations() -> None:
+def test_repository_package_exports_only_intended_concrete_implementations() -> None:
     assert all(
         name.endswith(("Repository", "Error", "Record", "RecordType"))
         for name in EXPECTED_REPOSITORY_EXPORTS
     )
     assert not hasattr(lifelenz.repositories, "SqlProfileRepository")
     assert not hasattr(lifelenz.repositories, "FilesystemProfileRepository")
+    assert not hasattr(lifelenz.repositories, "serialize_wellness_profile")
+    assert not hasattr(lifelenz.repositories, "deserialize_wellness_record")
