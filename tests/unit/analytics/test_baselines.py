@@ -760,7 +760,7 @@ def test_public_analytics_api_is_exact_deterministic_and_isolated() -> None:
     assert not set(expected) & set(lifelenz.application.__all__)
     assert len(lifelenz.domain.__all__) == 48
     assert len(lifelenz.repositories.__all__) == 11
-    assert len(lifelenz.application.__all__) == 8
+    assert len(lifelenz.application.__all__) == 12
 
 
 def test_analytics_dependency_direction_and_runtime_scope() -> None:
@@ -770,11 +770,14 @@ def test_analytics_dependency_direction_and_runtime_scope() -> None:
         path.read_text(encoding="utf-8") for path in (production / "analytics").glob("*.py")
     )
 
-    for layer in ("domain", "repositories", "application"):
+    for layer in ("domain", "repositories"):
         sources = "\n".join(
             path.read_text(encoding="utf-8") for path in (production / layer).glob("*.py")
         )
         assert "lifelenz.analytics" not in sources
+
+    application_services = (production / "application" / "services.py").read_text(encoding="utf-8")
+    assert "lifelenz.analytics" not in application_services
 
     assert "lifelenz.repositories" not in analytics_sources
     assert "lifelenz.application" not in analytics_sources

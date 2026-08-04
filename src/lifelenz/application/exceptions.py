@@ -19,3 +19,7 @@ class GoalNotFoundError(ApplicationError):
 
 class WellnessRecordNotFoundError(ApplicationError):
     """Raised when a valid profile-and-record ownership pair does not exist."""
+
+
+class WellnessSummaryUnavailableError(ApplicationError):
+    """Raised when an existing profile has no extractable summary observations."""
