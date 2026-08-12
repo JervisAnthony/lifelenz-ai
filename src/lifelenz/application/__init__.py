@@ -1,5 +1,7 @@
 """Public application-service API for LifeLenz use cases."""
 
+from lifelenz.application.authenticated_profile import AuthenticatedProfileService
+from lifelenz.application.authenticated_records import AuthenticatedWellnessRecordService
 from lifelenz.application.authentication import AuthenticationService
 from lifelenz.application.exceptions import (
     AccountAlreadyExistsError,
@@ -10,6 +12,8 @@ from lifelenz.application.exceptions import (
     InactiveAccountError,
     InvalidCredentialsError,
     ProfileAccessDeniedError,
+    ProfileAlreadyExistsError,
+    ProfileNotConfiguredError,
     ProfileNotFoundError,
     WellnessRecordNotFoundError,
     WellnessSummaryUnavailableError,
@@ -27,6 +31,8 @@ __all__ = [
     "AccountNotFoundError",
     "ApplicationError",
     "ApplicationValidationError",
+    "AuthenticatedProfileService",
+    "AuthenticatedWellnessRecordService",
     "AuthenticationService",
     "GoalNotFoundError",
     "GoalService",
@@ -34,6 +40,8 @@ __all__ = [
     "InvalidCredentialsError",
     "MetricWellnessSummary",
     "ProfileAccessDeniedError",
+    "ProfileAlreadyExistsError",
+    "ProfileNotConfiguredError",
     "ProfileNotFoundError",
     "ProfileOwnershipService",
     "ProfileService",

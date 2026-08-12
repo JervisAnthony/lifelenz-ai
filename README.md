@@ -50,15 +50,18 @@ hashing, short-lived signed access tokens, durable accounts, and explicit profil
 available. Account registration does not create a wellness profile: authentication establishes
 identity, while a separate `UserId -> ProfileId` mapping establishes authorization context. Hosted
 database deployment, cloud synchronization, goal progress, correlations,
-recommendations, predictions, import workflows, resource REST APIs, notifications, production
+recommendations, predictions, import workflows, goal and analytics REST APIs, notifications, production
 monitoring, web and mobile applications (including Android and iOS), and medical decision support do
 not yet exist. The project does not yet claim production readiness,
 regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
 
 LifeLenz-AI now also includes a versioned FastAPI foundation for local development. Alongside public
 system metadata, liveness, and SQLite-readiness endpoints, it supports account registration, login,
-and bearer-protected current-user retrieval. Profile, goal, wellness-record, and wellness-summary
-HTTP endpoints are not implemented. The local SQLite content is not encrypted.
+bearer-protected current-user retrieval, explicit primary-profile onboarding and replacement, and
+owned wellness-record creation, listing, and retrieval for all ten current record types. Every
+wellness-resource route requires bearer authentication and resolves ownership from the account;
+clients cannot choose a profile identifier. Goal and analytics HTTP endpoints are not implemented.
+The local SQLite content is not encrypted.
 
 The planned MVP capability areas are:
 
@@ -159,6 +162,12 @@ GET /api/v1/ready
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 GET /api/v1/auth/me
+POST /api/v1/profile
+GET /api/v1/profile
+PUT /api/v1/profile
+POST /api/v1/records
+GET /api/v1/records
+GET /api/v1/records/{record_id}
 ```
 
 Registration creates an account only and does not invent a wellness profile. Login returns a
@@ -166,10 +175,17 @@ short-lived access token; there is no refresh token yet. `/api/v1/auth/me` requi
 Bearer <token>` and returns safe account identity plus owned profile identifiers, never passwords,
 hashes, or wellness content.
 
+Profile onboarding is a separate authenticated step and permits one primary wellness profile per
+account. Profile requests contain only the existing wellness preferences; profile and ownership IDs
+are server-controlled. The record endpoints use an explicit `record_type` discriminator, generate
+record IDs on the server, preserve deterministic repository ordering, and optionally filter lists by
+record type or a start-inclusive/end-exclusive aware timestamp range. Cross-account record lookups
+return the same not-found response as nonexistent records to avoid revealing resource existence.
+
 Interactive documentation is available at `/docs` and `/redoc` unless documentation is disabled.
 This is not a complete authentication lifecycle, backend, or public production service. Password
-reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS, profile,
-record, goal and summary resource endpoints, hosted deployment, cloud synchronization,
+reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS, goal,
+summary, baseline, and trend resource endpoints, hosted deployment, cloud synchronization,
 notifications, production monitoring, web or mobile UI (including Android and iOS), and medical
 decision support remain out of scope. No production-grade security, regulatory compliance, or
 encrypted SQLite storage claim is made.

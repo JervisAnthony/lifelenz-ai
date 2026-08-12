@@ -77,8 +77,8 @@ def test_factory_calls_are_independent_and_reopening_same_database_succeeds(tmp_
     assert first.state.container is not second.state.container
     assert first.state.container.profile_repository is not second.state.container.profile_repository
     assert isolated.state.settings.database_path != shared.database_path
-    assert len(first.openapi()["paths"]) == 9
-    assert len(second.openapi()["paths"]) == 9
+    assert len(first.openapi()["paths"]) == 12
+    assert len(second.openapi()["paths"]) == 12
 
 
 def test_importing_api_modules_has_no_filesystem_or_application_side_effect(tmp_path: Path) -> None:
@@ -116,6 +116,9 @@ def test_docs_openapi_and_operation_ids_are_configured(tmp_path: Path) -> None:
         "/api/v1/auth/register",
         "/api/v1/auth/login",
         "/api/v1/auth/me",
+        "/api/v1/profile",
+        "/api/v1/records",
+        "/api/v1/records/{record_id}",
     }
     operation_ids = [
         operation["operationId"] for path in schema["paths"].values() for operation in path.values()
@@ -185,7 +188,7 @@ def test_public_api_and_existing_exports_are_exact() -> None:
     assert len(lifelenz.domain.__all__) == 48
     assert len(lifelenz.repositories.__all__) == 19
     assert len(lifelenz.analytics.__all__) == 11
-    assert len(lifelenz.application.__all__) == 19
+    assert len(lifelenz.application.__all__) == 23
     assert not hasattr(lifelenz.api, "ApiErrorResponse")
     assert not hasattr(lifelenz.api, "create_v1_router")
     assert not hasattr(lifelenz.api, "register_exception_handlers")

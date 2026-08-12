@@ -11,6 +11,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from lifelenz.api.config import ApiConfigurationError, ApiSettings
 from lifelenz.application import (
     AccountNotFoundError,
+    AuthenticatedProfileService,
+    AuthenticatedWellnessRecordService,
     AuthenticationService,
     GoalService,
     InactiveAccountError,
@@ -65,6 +67,8 @@ class ApiContainer:
     access_token_service: JwtAccessTokenService
     authentication_service: AuthenticationService
     profile_ownership_service: ProfileOwnershipService
+    authenticated_profile_service: AuthenticatedProfileService
+    authenticated_wellness_record_service: AuthenticatedWellnessRecordService
 
 
 def build_api_container(settings: ApiSettings) -> ApiContainer:
@@ -83,21 +87,33 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         audience=settings.jwt_audience,
         access_token_lifetime=timedelta(minutes=settings.access_token_minutes),
     )
+    profile_service = ProfileService(profile_repository)
+    record_service = WellnessRecordService(profile_repository, record_repository)
+    ownership_service = ProfileOwnershipService(ownership_repository)
+    authenticated_profile_service = AuthenticatedProfileService(
+        profile_service,
+        ownership_service,
+    )
     return ApiContainer(
         settings=settings,
         profile_repository=profile_repository,
         goal_repository=goal_repository,
         wellness_record_repository=record_repository,
-        profile_service=ProfileService(profile_repository),
+        profile_service=profile_service,
         goal_service=GoalService(profile_repository, goal_repository),
-        wellness_record_service=WellnessRecordService(profile_repository, record_repository),
+        wellness_record_service=record_service,
         wellness_summary_service=WellnessSummaryService(profile_repository, record_repository),
         user_account_repository=account_repository,
         profile_ownership_repository=ownership_repository,
         password_hasher=password_hasher,
         access_token_service=token_service,
         authentication_service=AuthenticationService(account_repository, password_hasher),
-        profile_ownership_service=ProfileOwnershipService(ownership_repository),
+        profile_ownership_service=ownership_service,
+        authenticated_profile_service=authenticated_profile_service,
+        authenticated_wellness_record_service=AuthenticatedWellnessRecordService(
+            authenticated_profile_service,
+            record_service,
+        ),
     )
 
 
