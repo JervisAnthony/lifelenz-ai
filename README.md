@@ -110,6 +110,20 @@ Apply the configured formatter when needed:
 python -m ruff format .
 ```
 
+## Continuous integration
+
+Pull requests, pushes to `main`, and manual workflow runs use Python 3.13, the runtime declared by
+the project metadata. CI runs Ruff lint and formatting checks, the full pytest suite, an enforced
+98% coverage floor, focused SQLite persistence and schema-migration tests, focused API and
+authentication tests, dependency consistency checks, deterministic project-specific security
+invariants, and wheel/source-distribution build verification. Dependency caching is an optimization;
+every job installs from `pyproject.toml` independently.
+
+Dependabot checks Python and GitHub Actions dependencies weekly. GitGuardian remains a complementary
+external secret-scanning check. These automated checks are not a formal security certification,
+complete static analysis, penetration test, production-hardening assessment, regulatory-compliance
+validation, or deployment validation.
+
 ## Local API
 
 Generate a signing secret and set it before constructing the API. The secret is required, has no

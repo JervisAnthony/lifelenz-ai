@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run Ruff lint
+        run: python -m ruff check .
+      - name: Check Ruff formatting
+        run: python -m ruff format --check .
+
+  tests:
+    name: Tests (Python 3.13)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run full test suite
+        run: python -m pytest
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Enforce coverage threshold
+        run: python -m pytest --cov=lifelenz --cov-report=term-missing --cov-report=xml
+
+  persistence:
+    name: Persistence & Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Validate SQLite persistence and migrations
+        run: python -m pytest tests/integration/repositories
+
+  api-authentication:
+    name: API & Authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LIFELENZ_JWT_SECRET: ci-test-only-jwt-secret-value-at-least-32-bytes
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Validate API and authentication boundaries
+        run: |
+          python -m pytest \
+            tests/unit/api \
+            tests/integration/api \
+            tests/unit/identity \
+            tests/unit/security \
+            tests/unit/application/test_authentication.py \
+            tests/unit/application/test_ownership.py
+
+  security-invariants:
+    name: Security Invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Check project security invariants
+        run: python scripts/check_security_invariants.py
+      - name: Test security invariant helper
+        run: python -m pytest tests/unit/scripts
+
+  package-integrity:
+    name: Package Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install build frontend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+      - name: Build wheel and source distribution
+        run: python -m build
+      - name: Verify distributions
+        run: |
+          python -c "from pathlib import Path; assert len(list(Path('dist').glob('*.whl'))) == 1; assert len(list(Path('dist').glob('*.tar.gz'))) == 1"
+      - name: Smoke-test built wheel
+        run: |
+          python -m venv .package-smoke
+          .package-smoke/bin/python -m pip install dist/*.whl
+          .package-smoke/bin/python -c "import lifelenz.domain; import lifelenz.identity; import lifelenz.security; import lifelenz.repositories; import lifelenz.analytics; import lifelenz.application; import lifelenz.api"
