@@ -50,9 +50,9 @@ hashing, short-lived signed access tokens, durable accounts, and explicit profil
 available. Account registration does not create a wellness profile: authentication establishes
 identity, while a separate `UserId -> ProfileId` mapping establishes authorization context. Hosted
 database deployment, cloud synchronization, goal progress, correlations,
-recommendations, predictions, import workflows, goal and analytics REST APIs, notifications, production
-monitoring, web and mobile applications (including Android and iOS), and medical decision support do
-not yet exist. The project does not yet claim production readiness,
+recommendations, predictions, import workflows, notifications, production monitoring, complete web
+workflows, mobile applications (including Android and iOS), and medical decision support do not yet
+exist. The project does not yet claim production readiness,
 regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
 
 LifeLenz-AI now also includes a versioned FastAPI foundation for local development. Alongside public
@@ -64,6 +64,11 @@ clients cannot choose a profile identifier. Owned wellness-goal management and a
 structured wellness-summary endpoint now expose the existing goal, baseline, and trend application
 capabilities without adding medical interpretation or generated recommendations. The local SQLite
 content is not encrypted.
+
+A first React and TypeScript web foundation now provides a restrained public landing page, account
+registration and login, authoritative current-user restoration, protected routing, and a responsive
+authenticated application shell. It does not yet provide profile onboarding, wellness-record entry,
+goal management, or summary visualizations; those remain focused future web milestones.
 
 The planned MVP capability areas are:
 
@@ -80,11 +85,12 @@ capabilities.
 
 ## Architecture
 
-The first development phase uses a layered, standard-library-first design. Domain types
-and validation form the base; repository abstractions manage records; pure analytics
-calculate baselines and trends; deterministic rules produce explainable observations; and
-services coordinate these parts into summaries. Packages for these layers will be added
-only with their first working capability.
+The backend uses a layered, standard-library-first design. Domain types and validation form the base;
+repository abstractions manage records; pure analytics calculate baselines and trends; deterministic
+rules produce explainable observations; and services coordinate these parts into summaries. The
+`web/` application is a separate Vite build with a typed API-client boundary, centralized
+authentication state, TanStack Query server-state orchestration, React Router routes, and lightweight
+CSS design tokens. The backend remains authoritative for identity and wellness data.
 
 See [Architecture](docs/architecture.md) for the intended dependency direction and design
 decisions.
@@ -115,19 +121,55 @@ Apply the configured formatter when needed:
 python -m ruff format .
 ```
 
+## Web development
+
+The web application requires a maintained Node.js 22 release. Install its locked npm dependencies and
+start Vite from the repository root:
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+Vite serves the application at `http://localhost:5173` and proxies same-origin `/api` requests to the
+local backend at `http://127.0.0.1:8000`; start that backend with the command in [Local API](#local-api).
+Copy `web/.env.example` only when an explicit API origin is needed. The browser-visible
+`VITE_LIFELENZ_API_BASE_URL` value is configuration, never a secret; leave it empty for the local
+development proxy.
+
+Run frontend validation from `web/`:
+
+```powershell
+npm run lint
+npm run format:check
+npm run typecheck
+npm run test:run
+npm run build
+```
+
+The current web alpha stores its short-lived bearer access token in browser `sessionStorage` through a
+single storage abstraction. Closing the browser session clears that storage, but `sessionStorage` does
+not eliminate cross-site scripting risk. There are no refresh tokens or server-side revocation/logout
+sessions yet; logout clears client state but cannot revoke an already-issued token. The server remains
+authoritative through `/api/v1/auth/me`, and production authentication hardening will be revisited
+before public deployment. Passwords, account objects, wellness data, and signing secrets are not
+persisted in browser storage.
+
 ## Continuous integration
 
 Pull requests, pushes to `main`, and manual workflow runs use Python 3.13, the runtime declared by
 the project metadata. CI runs Ruff lint and formatting checks, the full pytest suite, an enforced
 98% coverage floor, focused SQLite persistence and schema-migration tests, focused API and
 authentication tests, dependency consistency checks, deterministic project-specific security
-invariants, and wheel/source-distribution build verification. Dependency caching is an optimization;
-every job installs from `pyproject.toml` independently.
+invariants, and wheel/source-distribution build verification. A separate Node.js 22 `Web` job installs
+the npm lockfile and runs ESLint, Prettier, strict TypeScript, Vitest, and the production Vite build.
+Dependency caching is an optimization; each job installs from its ecosystem metadata independently.
 
-Dependabot checks Python and GitHub Actions dependencies weekly. GitGuardian remains a complementary
-external secret-scanning check. These automated checks are not a formal security certification,
-complete static analysis, penetration test, production-hardening assessment, regulatory-compliance
-validation, or deployment validation.
+Dependabot checks Python, GitHub Actions, and npm dependencies under `/web` weekly. GitGuardian
+remains a complementary external secret-scanning check. These automated checks are not a formal
+security certification, complete static analysis, penetration test, production-hardening assessment,
+regulatory-compliance validation, or deployment validation.
 
 ## Local API
 
@@ -203,9 +245,9 @@ Interactive documentation is available at `/docs` and `/redoc` unless documentat
 This is not a complete authentication lifecycle, backend, or public production service. Password
 reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
 standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
-notifications, production monitoring, web or mobile UI (including Android and iOS), and medical
-decision support remain out of scope. No production-grade security, regulatory compliance, or
-encrypted SQLite storage claim is made.
+notifications, production monitoring, complete profile/record/goal/summary web workflows, mobile UI
+(including Android and iOS), and medical decision support remain out of scope. No production-grade
+security, regulatory compliance, or encrypted SQLite storage claim is made.
 
 More contributor guidance is available in [Development standards](docs/development.md).
 
