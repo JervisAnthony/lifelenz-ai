@@ -23,10 +23,13 @@ from lifelenz.application import (
     InactiveAccountError,
     InvalidCredentialsError,
     ProfileAccessDeniedError,
+    ProfileAlreadyExistsError,
+    ProfileNotConfiguredError,
     ProfileNotFoundError,
     WellnessRecordNotFoundError,
     WellnessSummaryUnavailableError,
 )
+from lifelenz.domain import DomainValidationError
 from lifelenz.repositories import EntityNotFoundError, RepositoryPersistenceError
 from lifelenz.security import SecurityError, TokenValidationError
 
@@ -101,6 +104,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     mappings: tuple[tuple[type[Exception], _Handler], ...] = (
         (RequestValidationError, _request_validation_handler),
         (
+            DomainValidationError,
+            _handler(422, "domain_validation_error", "The wellness data is invalid."),
+        ),
+        (
             AccountAlreadyExistsError,
             _handler(409, "account_already_exists", "An account with this email already exists."),
         ),
@@ -128,6 +135,14 @@ def register_exception_handlers(app: FastAPI) -> None:
             _handler(403, "profile_access_denied", "Access to the profile is denied."),
         ),
         (AccountNotFoundError, _handler(404, "account_not_found", "The account was not found.")),
+        (
+            ProfileAlreadyExistsError,
+            _handler(409, "profile_already_exists", "A wellness profile is already configured."),
+        ),
+        (
+            ProfileNotConfiguredError,
+            _handler(404, "profile_not_configured", "A wellness profile is not configured."),
+        ),
         (
             ApplicationValidationError,
             _handler(400, "application_validation_error", "The request is invalid."),

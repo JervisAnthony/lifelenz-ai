@@ -43,3 +43,11 @@ class InactiveAccountError(ApplicationError):
 
 class ProfileAccessDeniedError(ApplicationError):
     """Raised when the authenticated account does not own a profile."""
+
+
+class ProfileAlreadyExistsError(ApplicationError):
+    """Raised when primary-profile onboarding has already been completed."""
+
+
+class ProfileNotConfiguredError(ApplicationError):
+    """Raised when an authenticated account has no primary wellness profile."""
