@@ -2,7 +2,9 @@
 
 from lifelenz.repositories.contracts import (
     GoalRepository,
+    ProfileOwnershipRepository,
     ProfileRepository,
+    UserAccountRepository,
     WellnessRecord,
     WellnessRecordRepository,
     WellnessRecordType,
@@ -20,7 +22,9 @@ from lifelenz.repositories.memory import (
 )
 from lifelenz.repositories.sqlite import (
     SQLiteGoalRepository,
+    SQLiteProfileOwnershipRepository,
     SQLiteProfileRepository,
+    SQLiteUserAccountRepository,
     SQLiteWellnessRecordRepository,
 )
 
@@ -31,12 +35,16 @@ __all__ = [
     "InMemoryGoalRepository",
     "InMemoryProfileRepository",
     "InMemoryWellnessRecordRepository",
+    "ProfileOwnershipRepository",
     "ProfileRepository",
     "RepositoryError",
     "RepositoryPersistenceError",
     "SQLiteGoalRepository",
+    "SQLiteProfileOwnershipRepository",
     "SQLiteProfileRepository",
+    "SQLiteUserAccountRepository",
     "SQLiteWellnessRecordRepository",
+    "UserAccountRepository",
     "WellnessRecord",
     "WellnessRecordRepository",
     "WellnessRecordType",

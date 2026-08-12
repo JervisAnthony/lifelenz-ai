@@ -23,3 +23,23 @@ class WellnessRecordNotFoundError(ApplicationError):
 
 class WellnessSummaryUnavailableError(ApplicationError):
     """Raised when an existing profile has no extractable summary observations."""
+
+
+class AccountNotFoundError(ApplicationError):
+    """Raised when an internal account lookup cannot find the requested identity."""
+
+
+class AccountAlreadyExistsError(ApplicationError):
+    """Raised when registration would reuse an existing canonical email."""
+
+
+class InvalidCredentialsError(ApplicationError):
+    """Raised for either an unknown email or an incorrect password."""
+
+
+class InactiveAccountError(ApplicationError):
+    """Raised when valid credentials reference a disabled account."""
+
+
+class ProfileAccessDeniedError(ApplicationError):
+    """Raised when the authenticated account does not own a profile."""

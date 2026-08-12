@@ -4,10 +4,16 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
+from uuid import UUID
 
 from lifelenz.domain import GoalId, ProfileId, RecordId, TimeRange, WellnessGoal, WellnessProfile
+from lifelenz.identity import EmailAddress, UserAccount, UserId
 from lifelenz.repositories.contracts import WellnessRecord, WellnessRecordType
-from lifelenz.repositories.exceptions import EntityNotFoundError, RepositoryPersistenceError
+from lifelenz.repositories.exceptions import (
+    DuplicateEntityError,
+    EntityNotFoundError,
+    RepositoryPersistenceError,
+)
 from lifelenz.repositories.serialization import (
     SerializationError,
     deserialize_wellness_goal,
@@ -19,7 +25,7 @@ from lifelenz.repositories.serialization import (
     serialize_wellness_record,
 )
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _CONNECTION_TIMEOUT_SECONDS = 5.0
 _SCHEMA_STATEMENTS = (
     """
@@ -58,6 +64,24 @@ _SCHEMA_STATEMENTS = (
     CREATE INDEX IF NOT EXISTS idx_wellness_records_profile_type_time
     ON wellness_records(profile_id, record_type, recorded_at_epoch, record_id)
     """,
+    """
+    CREATE TABLE IF NOT EXISTS user_accounts (
+        user_id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        is_active INTEGER NOT NULL CHECK (is_active IN (0, 1))
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS profile_ownership (
+        profile_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_profile_ownership_user_id
+    ON profile_ownership(user_id)
+    """,
 )
 
 
@@ -83,6 +107,18 @@ def _require_time_range(time_range: object) -> TimeRange:
     if not isinstance(time_range, TimeRange):
         raise TypeError(f"time_range must be a TimeRange; got {time_range!r}")
     return time_range
+
+
+def _require_user_id(user_id: object) -> UserId:
+    if type(user_id) is not UserId:
+        raise TypeError("user_id must be a UserId")
+    return user_id
+
+
+def _require_email(email: object) -> EmailAddress:
+    if type(email) is not EmailAddress:
+        raise TypeError("email must be an EmailAddress")
+    return email
 
 
 def _deserialize(operation: str, factory: object) -> object:
@@ -171,6 +207,14 @@ class _SQLiteRepository:
                     version = int(row["value"])
                 except (TypeError, ValueError) as error:
                     raise RepositoryPersistenceError("stored schema version is invalid") from error
+                if version == 1:
+                    for statement in _SCHEMA_STATEMENTS[-3:]:
+                        connection.execute(statement)
+                    connection.execute(
+                        "UPDATE schema_metadata SET value = ? WHERE key = ?",
+                        (str(_SCHEMA_VERSION), "schema_version"),
+                    )
+                    version = _SCHEMA_VERSION
                 if version != _SCHEMA_VERSION:
                     error = ValueError(f"unsupported schema version {version}")
                     raise RepositoryPersistenceError(
@@ -178,6 +222,147 @@ class _SQLiteRepository:
                     ) from error
             for statement in _SCHEMA_STATEMENTS:
                 connection.execute(statement)
+
+
+class SQLiteUserAccountRepository(_SQLiteRepository):
+    """Persist canonical accounts in SQLite without storing plaintext or tokens."""
+
+    def save(self, account: UserAccount) -> None:
+        if type(account) is not UserAccount:
+            raise TypeError("account must be a UserAccount")
+        try:
+            with self._connection("user account save", write=True) as connection:
+                connection.execute(
+                    """
+                    INSERT INTO user_accounts(user_id, email, password_hash, is_active)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        email = excluded.email,
+                        password_hash = excluded.password_hash,
+                        is_active = excluded.is_active
+                    """,
+                    (
+                        str(account.user_id.value),
+                        account.email.value,
+                        account.password_hash,
+                        int(account.is_active),
+                    ),
+                )
+        except RepositoryPersistenceError as error:
+            cause = error.__cause__
+            if isinstance(cause, sqlite3.IntegrityError) and "user_accounts.email" in str(cause):
+                raise DuplicateEntityError("an account already uses this email") from error
+            raise
+
+    def get(self, user_id: UserId) -> UserAccount:
+        validated = _require_user_id(user_id)
+        return self._get_one("user_id = ?", (str(validated.value),), "user account get")
+
+    def get_by_email(self, email: EmailAddress) -> UserAccount:
+        validated = _require_email(email)
+        return self._get_one("email = ?", (validated.value,), "user account email get")
+
+    def exists(self, user_id: UserId) -> bool:
+        validated = _require_user_id(user_id)
+        return self._exists("user_id = ?", (str(validated.value),), "user account existence")
+
+    def exists_by_email(self, email: EmailAddress) -> bool:
+        validated = _require_email(email)
+        return self._exists("email = ?", (validated.value,), "user account email existence")
+
+    def _get_one(
+        self, predicate: str, parameters: tuple[object, ...], operation: str
+    ) -> UserAccount:
+        with self._connection(operation) as connection:
+            row = connection.execute(
+                f"SELECT user_id, email, password_hash, is_active FROM user_accounts WHERE {predicate}",
+                parameters,
+            ).fetchone()
+        if row is None:
+            raise EntityNotFoundError("user account was not found")
+        try:
+            if row["is_active"] not in (0, 1):
+                raise ValueError("invalid active state")
+            return UserAccount(
+                user_id=UserId(UUID(row["user_id"])),
+                email=EmailAddress(row["email"]),
+                password_hash=row["password_hash"],
+                is_active=bool(row["is_active"]),
+            )
+        except (TypeError, ValueError) as error:
+            raise RepositoryPersistenceError("could not reconstruct stored user account") from error
+
+    def _exists(self, predicate: str, parameters: tuple[object, ...], operation: str) -> bool:
+        with self._connection(operation) as connection:
+            row = connection.execute(
+                f"SELECT 1 FROM user_accounts WHERE {predicate}", parameters
+            ).fetchone()
+        return row is not None
+
+
+class SQLiteProfileOwnershipRepository(_SQLiteRepository):
+    """Persist explicit profile ownership without cross-table enforcement or cascades."""
+
+    def assign(self, user_id: UserId, profile_id: ProfileId) -> None:
+        validated_user = _require_user_id(user_id)
+        validated_profile = _require_profile_id(profile_id)
+        with self._connection("profile ownership assignment", write=True) as connection:
+            connection.execute(
+                """
+                INSERT INTO profile_ownership(profile_id, user_id) VALUES (?, ?)
+                ON CONFLICT(profile_id) DO UPDATE SET user_id = excluded.user_id
+                """,
+                (validated_profile.value, str(validated_user.value)),
+            )
+
+    def get_owner(self, profile_id: ProfileId) -> UserId:
+        validated = _require_profile_id(profile_id)
+        with self._connection("profile owner get") as connection:
+            row = connection.execute(
+                "SELECT user_id FROM profile_ownership WHERE profile_id = ?",
+                (validated.value,),
+            ).fetchone()
+        if row is None:
+            raise EntityNotFoundError("profile ownership was not found")
+        try:
+            return UserId(UUID(row["user_id"]))
+        except (TypeError, ValueError) as error:
+            raise RepositoryPersistenceError(
+                "could not reconstruct stored profile owner"
+            ) from error
+
+    def is_owner(self, user_id: UserId, profile_id: ProfileId) -> bool:
+        validated_user = _require_user_id(user_id)
+        validated_profile = _require_profile_id(profile_id)
+        with self._connection("profile ownership check") as connection:
+            row = connection.execute(
+                "SELECT 1 FROM profile_ownership WHERE profile_id = ? AND user_id = ?",
+                (validated_profile.value, str(validated_user.value)),
+            ).fetchone()
+        return row is not None
+
+    def list_for_user(self, user_id: UserId) -> tuple[ProfileId, ...]:
+        validated = _require_user_id(user_id)
+        with self._connection("profile ownership listing") as connection:
+            rows = connection.execute(
+                "SELECT profile_id FROM profile_ownership WHERE user_id = ? ORDER BY profile_id ASC",
+                (str(validated.value),),
+            ).fetchall()
+        try:
+            return tuple(ProfileId(row["profile_id"]) for row in rows)
+        except (TypeError, ValueError) as error:
+            raise RepositoryPersistenceError(
+                "could not reconstruct stored profile ownership"
+            ) from error
+
+    def remove(self, profile_id: ProfileId) -> None:
+        validated = _require_profile_id(profile_id)
+        with self._connection("profile ownership removal", write=True) as connection:
+            cursor = connection.execute(
+                "DELETE FROM profile_ownership WHERE profile_id = ?", (validated.value,)
+            )
+            if cursor.rowcount == 0:
+                raise EntityNotFoundError("profile ownership was not found")
 
 
 class SQLiteProfileRepository(_SQLiteRepository):

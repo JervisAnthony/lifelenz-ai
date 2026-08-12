@@ -16,13 +16,19 @@ from lifelenz.api.config import ApiConfigurationError
 from lifelenz.api.middleware import REQUEST_ID_HEADER
 from lifelenz.api.schemas import ApiErrorDetail, ApiErrorResponse
 from lifelenz.application import (
+    AccountAlreadyExistsError,
+    AccountNotFoundError,
     ApplicationValidationError,
     GoalNotFoundError,
+    InactiveAccountError,
+    InvalidCredentialsError,
+    ProfileAccessDeniedError,
     ProfileNotFoundError,
     WellnessRecordNotFoundError,
     WellnessSummaryUnavailableError,
 )
 from lifelenz.repositories import EntityNotFoundError, RepositoryPersistenceError
+from lifelenz.security import SecurityError, TokenValidationError
 
 type _Handler = Callable[[Request, Exception], Awaitable[JSONResponse]]
 
@@ -42,6 +48,7 @@ def _error_response(
     code: str,
     message: str,
     field: str | None = None,
+    authenticate: bool = False,
 ) -> JSONResponse:
     request_id = _request_id(request)
     payload = ApiErrorResponse(
@@ -51,17 +58,21 @@ def _error_response(
     return JSONResponse(
         status_code=status_code,
         content=payload.model_dump(mode="json"),
-        headers={REQUEST_ID_HEADER: request_id},
+        headers={
+            REQUEST_ID_HEADER: request_id,
+            **({"WWW-Authenticate": "Bearer"} if authenticate else {}),
+        },
     )
 
 
-def _handler(status_code: int, code: str, message: str) -> _Handler:
+def _handler(status_code: int, code: str, message: str, *, authenticate: bool = False) -> _Handler:
     async def handle(request: Request, exception: Exception) -> JSONResponse:
         return _error_response(
             request,
             status_code=status_code,
             code=code,
             message=message,
+            authenticate=authenticate,
         )
 
     return handle
@@ -89,6 +100,34 @@ def register_exception_handlers(app: FastAPI) -> None:
     """Register explicit stable mappings for expected and unexpected failures."""
     mappings: tuple[tuple[type[Exception], _Handler], ...] = (
         (RequestValidationError, _request_validation_handler),
+        (
+            AccountAlreadyExistsError,
+            _handler(409, "account_already_exists", "An account with this email already exists."),
+        ),
+        (
+            InvalidCredentialsError,
+            _handler(
+                401,
+                "invalid_credentials",
+                "Invalid email or password.",
+                authenticate=True,
+            ),
+        ),
+        (
+            TokenValidationError,
+            _handler(
+                401,
+                "invalid_access_token",
+                "Authentication credentials are invalid or expired.",
+                authenticate=True,
+            ),
+        ),
+        (InactiveAccountError, _handler(403, "inactive_account", "The account is inactive.")),
+        (
+            ProfileAccessDeniedError,
+            _handler(403, "profile_access_denied", "Access to the profile is denied."),
+        ),
+        (AccountNotFoundError, _handler(404, "account_not_found", "The account was not found.")),
         (
             ApplicationValidationError,
             _handler(400, "application_validation_error", "The request is invalid."),
@@ -130,6 +169,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         (
             ApiConfigurationError,
             _handler(500, "api_configuration_error", "The API is not configured correctly."),
+        ),
+        (
+            SecurityError,
+            _handler(500, "security_error", "An internal security error occurred."),
         ),
         (
             Exception,

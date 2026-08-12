@@ -218,9 +218,9 @@ def test_new_database_schema_is_complete_versioned_and_idempotent(
         "idx_wellness_records_profile_recorded_at",
         "idx_wellness_records_profile_type_time",
     }
-    assert version == "1"
+    assert version == "2"
     assert foreign_keys == ()
-    assert not {"users", "accounts", "authentication"} & tables
+    assert tables >= {"user_accounts", "profile_ownership"}
 
 
 def test_all_repository_construction_orders_share_one_database(tmp_path: Path) -> None:
@@ -273,7 +273,7 @@ def test_missing_parent_and_directory_paths_raise_persistence_error_with_cause(
 def test_invalid_and_unsupported_schema_versions_are_rejected(tmp_path: Path) -> None:
     database = tmp_path / "version.sqlite3"
     SQLiteProfileRepository(database)
-    for value in ("2", "invalid"):
+    for value in ("0", "3", "invalid"):
         with connect(database) as connection:
             connection.execute(
                 "UPDATE schema_metadata SET value = ? WHERE key = ?",
@@ -285,7 +285,7 @@ def test_invalid_and_unsupported_schema_versions_are_rejected(tmp_path: Path) ->
         with connect(database) as connection:
             connection.execute(
                 "UPDATE schema_metadata SET value = ? WHERE key = ?",
-                ("1", "schema_version"),
+                ("2", "schema_version"),
             )
 
 
