@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -63,7 +63,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -105,7 +105,7 @@ jobs:
       LIFELENZ_JWT_SECRET: ci-test-only-jwt-secret-value-at-least-32-bytes
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -132,7 +132,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
@@ -156,7 +156,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
