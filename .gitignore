@@ -27,6 +27,11 @@ dist/
 .eggs/
 pip-wheel-metadata/
 
+# Web dependencies, test output, and Vite build output
+web/node_modules/
+web/dist/
+web/coverage/
+
 # Jupyter notebooks
 .ipynb_checkpoints/
 
@@ -34,6 +39,7 @@ pip-wheel-metadata/
 .env
 .env.*
 !.env.example
+!web/.env.example
 
 # Local SQLite application data
 data/
