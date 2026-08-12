@@ -10,6 +10,7 @@ from lifelenz.api.resource_schemas import (
     DailyActivityRecordRequest,
     DailyNutritionData,
     DailyNutritionRecordRequest,
+    GoalTargetData,
     HydrationData,
     HydrationRecordRequest,
     MealData,
@@ -19,6 +20,8 @@ from lifelenz.api.resource_schemas import (
     MenstrualBleedingRecordRequest,
     MenstrualCycleData,
     MenstrualCycleRecordRequest,
+    MetricWellnessSummaryResponse,
+    PersonalBaselineResponse,
     RecordMetadataRequest,
     RecordMetadataResponse,
     SleepData,
@@ -27,18 +30,25 @@ from lifelenz.api.resource_schemas import (
     SubjectiveCheckInData,
     SubjectiveCheckInRecordRequest,
     TimeRangeData,
+    WellnessGoalRequest,
+    WellnessGoalResponse,
     WellnessProfileRequest,
     WellnessProfileResponse,
     WellnessRecordCreateRequest,
     WellnessRecordResponse,
+    WellnessSummaryResponse,
+    WellnessTrendResponse,
     WorkoutData,
     WorkoutRecordRequest,
 )
+from lifelenz.application import WellnessSummary
 from lifelenz.domain import (
     BodyMeasurementRecord,
     CycleSymptomEntry,
     DailyActivityRecord,
     DailyNutritionRecord,
+    GoalId,
+    GoalTarget,
     HydrationRecord,
     MealNutrition,
     MealRecord,
@@ -53,6 +63,7 @@ from lifelenz.domain import (
     SubjectiveScore,
     SubjectiveWellnessCheckIn,
     TimeRange,
+    WellnessGoal,
     WellnessProfile,
     WorkoutRecord,
 )
@@ -80,6 +91,46 @@ def profile_response(profile: WellnessProfile) -> WellnessProfileResponse:
         measurement_system=profile.measurement_system,
         week_start=profile.week_start,
         tracked_domains=profile.tracked_domains,
+    )
+
+
+def goal_from_request(
+    request: WellnessGoalRequest,
+    *,
+    goal_id: GoalId,
+    profile_id: ProfileId,
+) -> WellnessGoal:
+    return WellnessGoal(
+        goal_id=goal_id,
+        profile_id=profile_id,
+        target=GoalTarget(
+            metric=request.target.metric,
+            value=request.target.value,
+            unit=request.target.unit,
+        ),
+        direction=request.direction,
+        status=request.status,
+        start_date=request.start_date,
+        target_date=request.target_date,
+        title=request.title,
+        description=request.description,
+    )
+
+
+def goal_response(goal: WellnessGoal) -> WellnessGoalResponse:
+    return WellnessGoalResponse(
+        goal_id=UUID(goal.goal_id.value),
+        target=GoalTargetData(
+            metric=goal.target.metric,
+            value=goal.target.value,
+            unit=goal.target.unit,
+        ),
+        direction=goal.direction,
+        status=goal.status,
+        start_date=goal.start_date,
+        target_date=goal.target_date,
+        title=goal.title,
+        description=goal.description,
     )
 
 
@@ -266,3 +317,53 @@ def record_response(record: WellnessRecord) -> WellnessRecordResponse:
     else:
         raise TypeError("unsupported wellness record")
     return WellnessRecordResponse(record_type=kind, metadata=metadata, data=data)
+
+
+def _time_range_data(time_range: TimeRange | None) -> TimeRangeData | None:
+    if time_range is None:
+        return None
+    return TimeRangeData(start=time_range.start, end=time_range.end)
+
+
+def summary_response(summary: WellnessSummary) -> WellnessSummaryResponse:
+    metric_responses = []
+    for metric_summary in summary.metrics:
+        baseline = metric_summary.baseline
+        trend = metric_summary.trend
+        metric_responses.append(
+            MetricWellnessSummaryResponse(
+                metric=metric_summary.metric,
+                unit=metric_summary.unit,
+                baseline=PersonalBaselineResponse(
+                    sample_count=baseline.sample_count,
+                    mean=baseline.mean,
+                    median=baseline.median,
+                    minimum=baseline.minimum,
+                    maximum=baseline.maximum,
+                    population_standard_deviation=baseline.population_standard_deviation,
+                    first_observed_at=baseline.first_observed_at,
+                    last_observed_at=baseline.last_observed_at,
+                    time_range=_time_range_data(baseline.time_range),
+                ),
+                trend=None
+                if trend is None
+                else WellnessTrendResponse(
+                    sample_count=trend.sample_count,
+                    first_value=trend.first_value,
+                    last_value=trend.last_value,
+                    absolute_change=trend.absolute_change,
+                    percentage_change=trend.percentage_change,
+                    slope_per_day=trend.slope_per_day,
+                    direction=trend.direction,
+                    stability_tolerance=trend.stability_tolerance,
+                    first_observed_at=trend.first_observed_at,
+                    last_observed_at=trend.last_observed_at,
+                    time_range=_time_range_data(trend.time_range),
+                ),
+            )
+        )
+    return WellnessSummaryResponse(
+        metrics=tuple(metric_responses),
+        time_range=_time_range_data(summary.time_range),
+        generated_from_record_count=summary.generated_from_record_count,
+    )

@@ -490,5 +490,5 @@ def test_openapi_record_union_is_exhaustive_protected_and_custom_prefix_works(
     ]["schema"]["discriminator"]
     assert set(discriminator["mapping"]) == {record_type for record_type, _ in RECORD_SAMPLES}
     paths = set(schema["paths"])
-    assert not any(term in path for path in paths for term in ("/goals", "/summary", "/trends"))
+    assert not any(term in path for path in paths for term in ("/baselines", "/trends"))
     assert not any("refresh" in path for path in paths)
