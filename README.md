@@ -45,17 +45,20 @@ future values nor recommend actions. A framework-independent wellness-summary wo
 an existing profile, reads its stored records with optional metadata-time filtering, and produces one
 structured canonical-unit summary per supported metric. Metrics with at least one sample include a
 baseline, while metrics with at least two samples also include a trend. The result is structured data,
-not user-facing medical or coaching text. Authentication, authorization, and user-ownership
-accounts, hosted database deployment, cloud synchronization, goal progress, correlations,
+not user-facing medical or coaching text. Framework-independent account identity, Argon2 password
+hashing, short-lived signed access tokens, durable accounts, and explicit profile ownership are now
+available. Account registration does not create a wellness profile: authentication establishes
+identity, while a separate `UserId -> ProfileId` mapping establishes authorization context. Hosted
+database deployment, cloud synchronization, goal progress, correlations,
 recommendations, predictions, import workflows, resource REST APIs, notifications, production
 monitoring, web and mobile applications (including Android and iOS), and medical decision support do
 not yet exist. The project does not yet claim production readiness,
 regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
 
-LifeLenz-AI now also includes a versioned FastAPI foundation for local development. It exposes only
-deterministic system metadata, liveness, and SQLite-readiness endpoints; profile, goal,
-wellness-record, and wellness-summary HTTP endpoints are not implemented. The API is unauthenticated,
-does not provide user accounts or authorization, and does not make the local SQLite content encrypted.
+LifeLenz-AI now also includes a versioned FastAPI foundation for local development. Alongside public
+system metadata, liveness, and SQLite-readiness endpoints, it supports account registration, login,
+and bearer-protected current-user retrieval. Profile, goal, wellness-record, and wellness-summary
+HTTP endpoints are not implemented. The local SQLite content is not encrypted.
 
 The planned MVP capability areas are:
 
@@ -109,7 +112,15 @@ python -m ruff format .
 
 ## Local API
 
-Start the development API from the activated project environment:
+Generate a signing secret and set it before constructing the API. The secret is required, has no
+built-in fallback, and must not be committed:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+$env:LIFELENZ_JWT_SECRET = "<generated value>"
+```
+
+Then start the development API from the activated project environment:
 
 ```powershell
 python -m uvicorn lifelenz.api.app:create_app --factory --reload
@@ -117,8 +128,10 @@ python -m uvicorn lifelenz.api.app:create_app --factory --reload
 
 The default database is `./data/lifelenz.db`. Explicit application construction creates its parent
 directory when needed. Configuration is read from `LIFELENZ_ENVIRONMENT`,
-`LIFELENZ_DATABASE_PATH`, `LIFELENZ_API_PREFIX`, and `LIFELENZ_DOCS_ENABLED`; no `.env` parser is
-included.
+`LIFELENZ_DATABASE_PATH`, `LIFELENZ_API_PREFIX`, `LIFELENZ_DOCS_ENABLED`,
+`LIFELENZ_JWT_SECRET`, `LIFELENZ_JWT_ISSUER` (default `lifelenz-api`),
+`LIFELENZ_JWT_AUDIENCE` (default `lifelenz-clients`), and `LIFELENZ_ACCESS_TOKEN_MINUTES` (default
+`30`, allowed `5` through `1440`); no `.env` parser is included.
 
 Available routes are:
 
@@ -129,13 +142,23 @@ GET /ready
 GET /api/v1
 GET /api/v1/health
 GET /api/v1/ready
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+GET /api/v1/auth/me
 ```
 
+Registration creates an account only and does not invent a wellness profile. Login returns a
+short-lived access token; there is no refresh token yet. `/api/v1/auth/me` requires `Authorization:
+Bearer <token>` and returns safe account identity plus owned profile identifiers, never passwords,
+hashes, or wellness content.
+
 Interactive documentation is available at `/docs` and `/redoc` unless documentation is disabled.
-This is not a complete backend or public production service. Authentication, authorization, user
-accounts, resource endpoints, hosted deployment, cloud synchronization, notifications, production
-monitoring, web or mobile UI (including Android and iOS), and medical decision support remain out of
-scope.
+This is not a complete authentication lifecycle, backend, or public production service. Password
+reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS, profile,
+record, goal and summary resource endpoints, hosted deployment, cloud synchronization,
+notifications, production monitoring, web or mobile UI (including Android and iOS), and medical
+decision support remain out of scope. No production-grade security, regulatory compliance, or
+encrypted SQLite storage claim is made.
 
 More contributor guidance is available in [Development standards](docs/development.md).
 

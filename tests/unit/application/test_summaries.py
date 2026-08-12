@@ -884,12 +884,19 @@ def test_analytics_validation_error_from_malformed_repository_data_propagates() 
 
 def test_application_api_and_layer_boundaries_are_exact() -> None:
     expected = [
+        "AccountAlreadyExistsError",
+        "AccountNotFoundError",
         "ApplicationError",
         "ApplicationValidationError",
+        "AuthenticationService",
         "GoalNotFoundError",
         "GoalService",
+        "InactiveAccountError",
+        "InvalidCredentialsError",
         "MetricWellnessSummary",
+        "ProfileAccessDeniedError",
         "ProfileNotFoundError",
+        "ProfileOwnershipService",
         "ProfileService",
         "WellnessRecordNotFoundError",
         "WellnessRecordService",
@@ -907,7 +914,7 @@ def test_application_api_and_layer_boundaries_are_exact() -> None:
         lifelenz.analytics.__all__
     )
     assert len(lifelenz.domain.__all__) == 48
-    assert len(lifelenz.repositories.__all__) == 15
+    assert len(lifelenz.repositories.__all__) == 19
     assert len(lifelenz.analytics.__all__) == 11
 
 

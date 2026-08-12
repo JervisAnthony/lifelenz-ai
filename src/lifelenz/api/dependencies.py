@@ -2,27 +2,49 @@
 
 import sqlite3
 from dataclasses import dataclass
+from datetime import timedelta
+from typing import Annotated
 
-from fastapi import Request
+from fastapi import Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from lifelenz.api.config import ApiConfigurationError, ApiSettings
 from lifelenz.application import (
+    AccountNotFoundError,
+    AuthenticationService,
     GoalService,
+    InactiveAccountError,
+    ProfileOwnershipService,
     ProfileService,
     WellnessRecordService,
     WellnessSummaryService,
 )
+from lifelenz.identity import UserAccount
 from lifelenz.repositories import (
     GoalRepository,
+    ProfileOwnershipRepository,
     ProfileRepository,
     RepositoryPersistenceError,
     SQLiteGoalRepository,
+    SQLiteProfileOwnershipRepository,
     SQLiteProfileRepository,
+    SQLiteUserAccountRepository,
     SQLiteWellnessRecordRepository,
+    UserAccountRepository,
     WellnessRecordRepository,
 )
+from lifelenz.security import (
+    Argon2PasswordHasher,
+    JwtAccessTokenService,
+    TokenValidationError,
+)
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
+_BEARER_SCHEME = HTTPBearer(
+    auto_error=False,
+    scheme_name="BearerAuth",
+    description="LifeLenz short-lived bearer access token",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +59,12 @@ class ApiContainer:
     goal_service: GoalService
     wellness_record_service: WellnessRecordService
     wellness_summary_service: WellnessSummaryService
+    user_account_repository: UserAccountRepository
+    profile_ownership_repository: ProfileOwnershipRepository
+    password_hasher: Argon2PasswordHasher
+    access_token_service: JwtAccessTokenService
+    authentication_service: AuthenticationService
+    profile_ownership_service: ProfileOwnershipService
 
 
 def build_api_container(settings: ApiSettings) -> ApiContainer:
@@ -46,6 +74,15 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
     profile_repository = SQLiteProfileRepository(settings.database_path)
     goal_repository = SQLiteGoalRepository(settings.database_path)
     record_repository = SQLiteWellnessRecordRepository(settings.database_path)
+    account_repository = SQLiteUserAccountRepository(settings.database_path)
+    ownership_repository = SQLiteProfileOwnershipRepository(settings.database_path)
+    password_hasher = Argon2PasswordHasher()
+    token_service = JwtAccessTokenService(
+        secret=settings.jwt_secret,
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
+        access_token_lifetime=timedelta(minutes=settings.access_token_minutes),
+    )
     return ApiContainer(
         settings=settings,
         profile_repository=profile_repository,
@@ -55,7 +92,31 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         goal_service=GoalService(profile_repository, goal_repository),
         wellness_record_service=WellnessRecordService(profile_repository, record_repository),
         wellness_summary_service=WellnessSummaryService(profile_repository, record_repository),
+        user_account_repository=account_repository,
+        profile_ownership_repository=ownership_repository,
+        password_hasher=password_hasher,
+        access_token_service=token_service,
+        authentication_service=AuthenticationService(account_repository, password_hasher),
+        profile_ownership_service=ProfileOwnershipService(ownership_repository),
     )
+
+
+def get_current_user(
+    request: Request,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Security(_BEARER_SCHEME)],
+) -> UserAccount:
+    """Authenticate a bearer subject against the authoritative active account."""
+    if credentials is None or credentials.scheme.casefold() != "bearer":
+        raise TokenValidationError("access token is missing or invalid")
+    container = get_api_container(request)
+    claims = container.access_token_service.decode_token(credentials.credentials)
+    try:
+        account = container.authentication_service.get_account(claims.subject)
+    except AccountNotFoundError as error:
+        raise TokenValidationError("access token subject is invalid") from error
+    if not account.is_active:
+        raise InactiveAccountError("account is inactive")
+    return account
 
 
 def get_api_settings(request: Request) -> ApiSettings:

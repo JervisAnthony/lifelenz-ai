@@ -40,12 +40,12 @@ def test_health_and_readiness_literals_are_strict() -> None:
         "version": "0.1.0",
     }
     assert ReadinessResponse(
-        status="ready", database="available", schema_version=1
-    ).model_dump() == {"status": "ready", "database": "available", "schema_version": 1}
+        status="ready", database="available", schema_version=2
+    ).model_dump() == {"status": "ready", "database": "available", "schema_version": 2}
     with pytest.raises(ValidationError):
         HealthResponse(status="ready", service="service", version="1")  # type: ignore[arg-type]
     with pytest.raises(ValidationError):
-        ReadinessResponse(status="ready", database="down", schema_version=1)  # type: ignore[arg-type]
+        ReadinessResponse(status="ready", database="down", schema_version=2)  # type: ignore[arg-type]
 
 
 def test_error_schemas_require_request_id_and_preserve_optional_field() -> None:
@@ -80,7 +80,7 @@ def test_error_schemas_require_request_id_and_preserve_optional_field() -> None:
         (HealthResponse, {"status": "ok", "service": "name", "version": "1", "path": "db"}),
         (
             ReadinessResponse,
-            {"status": "ready", "database": "available", "schema_version": 1, "sql": "SELECT"},
+            {"status": "ready", "database": "available", "schema_version": 2, "sql": "SELECT"},
         ),
         (
             ApiErrorDetail,

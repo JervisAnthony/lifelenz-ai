@@ -11,6 +11,8 @@ from fastapi import FastAPI
 
 from lifelenz.api import ApiSettings, create_app
 
+TEST_SECRET = "integration-only-secret-material-32-bytes"
+
 
 def settings(path: Path, **changes: object) -> ApiSettings:
     values: dict[str, object] = {
@@ -18,6 +20,7 @@ def settings(path: Path, **changes: object) -> ApiSettings:
         "application_version": "0.1.0",
         "environment": "integration",
         "database_path": path,
+        "jwt_secret": TEST_SECRET,
     }
     values.update(changes)
     return ApiSettings(**values)  # type: ignore[arg-type]
@@ -87,14 +90,14 @@ def test_readiness_reports_supported_schema_without_details(path: str, tmp_path:
     response = get(app, path)
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "database": "available", "schema_version": 1}
+    assert response.json() == {"status": "ready", "database": "available", "schema_version": 2}
     serialized = response.text.casefold()
     assert "schema_metadata" not in serialized
     assert str(tmp_path).casefold() not in serialized
     assert "record_count" not in serialized
 
 
-@pytest.mark.parametrize("version", ["2", "invalid"])
+@pytest.mark.parametrize("version", ["3", "invalid"])
 def test_readiness_version_failures_are_generic_and_liveness_survives(
     version: str,
     tmp_path: Path,

@@ -25,6 +25,7 @@ from lifelenz.domain import (
     WellnessProfile,
     WorkoutRecord,
 )
+from lifelenz.identity import EmailAddress, UserAccount, UserId
 
 type WellnessRecord = (
     SleepRecord
@@ -42,6 +43,34 @@ type WellnessRecord = (
 
 type WellnessRecordType = type[WellnessRecord]
 """The exact concrete class of a supported wellness record."""
+
+
+class UserAccountRepository(Protocol):
+    """Contract for durable account identity storage without enumeration."""
+
+    def save(self, account: UserAccount) -> None: ...
+
+    def get(self, user_id: UserId) -> UserAccount: ...
+
+    def get_by_email(self, email: EmailAddress) -> UserAccount: ...
+
+    def exists(self, user_id: UserId) -> bool: ...
+
+    def exists_by_email(self, email: EmailAddress) -> bool: ...
+
+
+class ProfileOwnershipRepository(Protocol):
+    """Contract for the explicit UserId-to-ProfileId authorization boundary."""
+
+    def assign(self, user_id: UserId, profile_id: ProfileId) -> None: ...
+
+    def get_owner(self, profile_id: ProfileId) -> UserId: ...
+
+    def is_owner(self, user_id: UserId, profile_id: ProfileId) -> bool: ...
+
+    def list_for_user(self, user_id: UserId) -> tuple[ProfileId, ...]: ...
+
+    def remove(self, profile_id: ProfileId) -> None: ...
 
 
 class ProfileRepository(Protocol):

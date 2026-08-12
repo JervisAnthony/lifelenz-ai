@@ -16,9 +16,11 @@ from lifelenz.api.dependencies import (
 from lifelenz.domain import ProfileId, WellnessProfile
 from lifelenz.repositories import RepositoryPersistenceError
 
+TEST_SECRET = "unit-only-secret-material-at-least-32-bytes"
+
 
 def settings(path: Path) -> ApiSettings:
-    return ApiSettings("LifeLenz-AI", "0.1.0", "test", path)
+    return ApiSettings("LifeLenz-AI", "0.1.0", "test", path, TEST_SECRET)
 
 
 def request_for(app: FastAPI) -> Request:
