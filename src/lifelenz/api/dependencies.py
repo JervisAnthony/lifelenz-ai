@@ -11,8 +11,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from lifelenz.api.config import ApiConfigurationError, ApiSettings
 from lifelenz.application import (
     AccountNotFoundError,
+    AuthenticatedGoalService,
     AuthenticatedProfileService,
     AuthenticatedWellnessRecordService,
+    AuthenticatedWellnessSummaryService,
     AuthenticationService,
     GoalService,
     InactiveAccountError,
@@ -69,6 +71,8 @@ class ApiContainer:
     profile_ownership_service: ProfileOwnershipService
     authenticated_profile_service: AuthenticatedProfileService
     authenticated_wellness_record_service: AuthenticatedWellnessRecordService
+    authenticated_goal_service: AuthenticatedGoalService
+    authenticated_wellness_summary_service: AuthenticatedWellnessSummaryService
 
 
 def build_api_container(settings: ApiSettings) -> ApiContainer:
@@ -94,15 +98,17 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         profile_service,
         ownership_service,
     )
+    goal_service = GoalService(profile_repository, goal_repository)
+    summary_service = WellnessSummaryService(profile_repository, record_repository)
     return ApiContainer(
         settings=settings,
         profile_repository=profile_repository,
         goal_repository=goal_repository,
         wellness_record_repository=record_repository,
         profile_service=profile_service,
-        goal_service=GoalService(profile_repository, goal_repository),
+        goal_service=goal_service,
         wellness_record_service=record_service,
-        wellness_summary_service=WellnessSummaryService(profile_repository, record_repository),
+        wellness_summary_service=summary_service,
         user_account_repository=account_repository,
         profile_ownership_repository=ownership_repository,
         password_hasher=password_hasher,
@@ -113,6 +119,14 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         authenticated_wellness_record_service=AuthenticatedWellnessRecordService(
             authenticated_profile_service,
             record_service,
+        ),
+        authenticated_goal_service=AuthenticatedGoalService(
+            authenticated_profile_service,
+            goal_service,
+        ),
+        authenticated_wellness_summary_service=AuthenticatedWellnessSummaryService(
+            authenticated_profile_service,
+            summary_service,
         ),
     )
 

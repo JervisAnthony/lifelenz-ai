@@ -10,8 +10,10 @@ from lifelenz.api.errors import register_exception_handlers
 from lifelenz.api.middleware import register_request_id_middleware
 from lifelenz.api.routes import create_v1_router
 from lifelenz.api.routes.auth import create_auth_router
+from lifelenz.api.routes.goals import create_goals_router
 from lifelenz.api.routes.profile import create_profile_router
 from lifelenz.api.routes.records import create_records_router
+from lifelenz.api.routes.summary import create_summary_router
 from lifelenz.api.routes.system import create_system_router
 
 _DESCRIPTION = "A versioned API foundation for structured, non-diagnostic personal wellness data."
@@ -54,6 +56,8 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         app.include_router(create_auth_router())
         app.include_router(create_profile_router())
         app.include_router(create_records_router())
+        app.include_router(create_goals_router())
+        app.include_router(create_summary_router())
     else:
         app.include_router(create_v1_router(), prefix=resolved.api_prefix)
     return app

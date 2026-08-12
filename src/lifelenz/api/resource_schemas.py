@@ -6,14 +6,19 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
 
+from lifelenz.analytics import TrendDirection
 from lifelenz.domain import (
     BeverageType,
     CheckInTag,
     CycleSymptom,
     DataSource,
+    GoalDirection,
+    GoalStatus,
     MealType,
     MeasurementSystem,
+    MeasurementUnit,
     MenstrualFlow,
+    MetricIdentifier,
     MoodCategory,
     SleepQuality,
     SymptomIntensity,
@@ -21,6 +26,8 @@ from lifelenz.domain import (
     WeekStart,
     WorkoutType,
 )
+
+type StrictNumber = StrictInt | StrictFloat
 
 
 class _StrictResourceModel(BaseModel):
@@ -40,6 +47,26 @@ class WellnessProfileRequest(_StrictResourceModel):
 
 class WellnessProfileResponse(WellnessProfileRequest):
     profile_id: UUID
+
+
+class GoalTargetData(_StrictResourceModel):
+    metric: MetricIdentifier
+    value: StrictNumber
+    unit: MeasurementUnit
+
+
+class WellnessGoalRequest(_StrictResourceModel):
+    target: GoalTargetData
+    direction: GoalDirection
+    status: GoalStatus = GoalStatus.DRAFT
+    start_date: date | None = None
+    target_date: date | None = None
+    title: str | None = None
+    description: str | None = None
+
+
+class WellnessGoalResponse(WellnessGoalRequest):
+    goal_id: UUID
 
 
 class RecordMetadataRequest(_StrictResourceModel):
@@ -253,3 +280,42 @@ class WellnessRecordResponse(_StrictResourceModel):
     record_type: WellnessRecordTypeName
     metadata: RecordMetadataResponse
     data: WellnessRecordData
+
+
+class PersonalBaselineResponse(_StrictResourceModel):
+    sample_count: StrictInt
+    mean: StrictFloat
+    median: StrictFloat
+    minimum: StrictNumber
+    maximum: StrictNumber
+    population_standard_deviation: StrictFloat
+    first_observed_at: datetime
+    last_observed_at: datetime
+    time_range: TimeRangeData | None
+
+
+class WellnessTrendResponse(_StrictResourceModel):
+    sample_count: StrictInt
+    first_value: StrictNumber
+    last_value: StrictNumber
+    absolute_change: StrictFloat
+    percentage_change: StrictFloat | None
+    slope_per_day: StrictFloat
+    direction: TrendDirection
+    stability_tolerance: StrictFloat
+    first_observed_at: datetime
+    last_observed_at: datetime
+    time_range: TimeRangeData | None
+
+
+class MetricWellnessSummaryResponse(_StrictResourceModel):
+    metric: MetricIdentifier
+    unit: MeasurementUnit
+    baseline: PersonalBaselineResponse
+    trend: WellnessTrendResponse | None
+
+
+class WellnessSummaryResponse(_StrictResourceModel):
+    metrics: tuple[MetricWellnessSummaryResponse, ...]
+    time_range: TimeRangeData | None
+    generated_from_record_count: StrictInt

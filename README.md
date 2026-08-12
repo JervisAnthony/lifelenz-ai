@@ -60,8 +60,10 @@ system metadata, liveness, and SQLite-readiness endpoints, it supports account r
 bearer-protected current-user retrieval, explicit primary-profile onboarding and replacement, and
 owned wellness-record creation, listing, and retrieval for all ten current record types. Every
 wellness-resource route requires bearer authentication and resolves ownership from the account;
-clients cannot choose a profile identifier. Goal and analytics HTTP endpoints are not implemented.
-The local SQLite content is not encrypted.
+clients cannot choose a profile identifier. Owned wellness-goal management and a deterministic,
+structured wellness-summary endpoint now expose the existing goal, baseline, and trend application
+capabilities without adding medical interpretation or generated recommendations. The local SQLite
+content is not encrypted.
 
 The planned MVP capability areas are:
 
@@ -168,6 +170,12 @@ PUT /api/v1/profile
 POST /api/v1/records
 GET /api/v1/records
 GET /api/v1/records/{record_id}
+POST /api/v1/goals
+GET /api/v1/goals
+GET /api/v1/goals/{goal_id}
+PUT /api/v1/goals/{goal_id}
+DELETE /api/v1/goals/{goal_id}
+GET /api/v1/summary
 ```
 
 Registration creates an account only and does not invent a wellness profile. Login returns a
@@ -182,10 +190,19 @@ record IDs on the server, preserve deterministic repository ordering, and option
 record type or a start-inclusive/end-exclusive aware timestamp range. Cross-account record lookups
 return the same not-found response as nonexistent records to avoid revealing resource existence.
 
+Goal routes also derive the primary profile from the authenticated account. They support create,
+list, read, immutable replacement, and deletion through the existing goal application/repository
+contracts; callers cannot choose profile ownership. Cross-account goal lookups use the same
+not-found response as nonexistent goals. The summary route accepts optional repeated `metric`
+parameters and an aware `start`/`end` window. It returns canonical-unit baselines and optional
+mathematical trends from the existing analytics layer. A single sample produces a baseline without
+a trend. These calculations are structured descriptive data, not diagnosis, medical advice,
+prediction, a health score, or an AI-generated recommendation.
+
 Interactive documentation is available at `/docs` and `/redoc` unless documentation is disabled.
 This is not a complete authentication lifecycle, backend, or public production service. Password
-reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS, goal,
-summary, baseline, and trend resource endpoints, hosted deployment, cloud synchronization,
+reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
+standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
 notifications, production monitoring, web or mobile UI (including Android and iOS), and medical
 decision support remain out of scope. No production-grade security, regulatory compliance, or
 encrypted SQLite storage claim is made.

@@ -777,7 +777,7 @@ def test_public_api_and_dependency_boundaries_include_only_intended_trend_symbol
     assert not set(expected) & set(lifelenz.application.__all__)
     assert len(lifelenz.domain.__all__) == 48
     assert len(lifelenz.repositories.__all__) == 19
-    assert len(lifelenz.application.__all__) == 23
+    assert len(lifelenz.application.__all__) == 25
 
     root = Path(__file__).parents[3]
     production = root / "src" / "lifelenz"
