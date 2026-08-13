@@ -65,10 +65,13 @@ structured wellness-summary endpoint now expose the existing goal, baseline, and
 capabilities without adding medical interpretation or generated recommendations. The local SQLite
 content is not encrypted.
 
-A first React and TypeScript web foundation now provides a restrained public landing page, account
-registration and login, authoritative current-user restoration, protected routing, and a responsive
-authenticated application shell. It does not yet provide profile onboarding, wellness-record entry,
-goal management, or summary visualizations; those remain focused future web milestones.
+A React and TypeScript web application now provides a restrained public landing page, account
+registration and login, authoritative current-user restoration, protected routing, first-time
+wellness-profile onboarding, profile-preference editing, and a responsive authenticated application
+shell. Its initial dashboard presents real structured wellness summaries when records exist and an
+honest empty state when they do not. Summary measurements remain in the backend's canonical units;
+the stored measurement-system preference does not yet convert them in the browser. Wellness-record
+entry, goal-management UI, and full analytics visualizations remain focused future web milestones.
 
 The planned MVP capability areas are:
 
@@ -155,6 +158,12 @@ sessions yet; logout clears client state but cannot revoke an already-issued tok
 authoritative through `/api/v1/auth/me`, and production authentication hardening will be revisited
 before public deployment. Passwords, account objects, wellness data, and signing secrets are not
 persisted in browser storage.
+
+After authentication, the web application derives onboarding state from the server-owned profile
+identifiers returned by `/api/v1/auth/me`. Users without a profile are guided through the existing
+profile API; configured users can review their preferences and open a summary-backed dashboard. The
+web interface currently supports Home and Profile only. Wellness-record entry, record history,
+goal-management UI, and chart-based visualization are not yet implemented.
 
 ## Continuous integration
 

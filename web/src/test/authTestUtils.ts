@@ -13,6 +13,7 @@ export function createAuthValue(
   return {
     status: 'unauthenticated',
     user: null,
+    accessToken: null,
     notice: null,
     login: async () => currentUser,
     register: async (details) => ({
@@ -20,6 +21,8 @@ export function createAuthValue(
       email: details.email,
       is_active: true,
     }),
+    refreshCurrentUser: async () => null,
+    handleSessionError: () => false,
     logout: () => undefined,
     clearNotice: () => undefined,
     ...overrides,

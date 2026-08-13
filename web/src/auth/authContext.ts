@@ -12,9 +12,12 @@ export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 export interface AuthContextValue {
   status: AuthStatus;
   user: CurrentUser | null;
+  accessToken: string | null;
   notice: string | null;
   login(credentials: LoginRequest): Promise<CurrentUser>;
   register(details: RegisterRequest): Promise<UserAccount>;
+  refreshCurrentUser(): Promise<CurrentUser | null>;
+  handleSessionError(error: unknown): boolean;
   logout(): void;
   clearNotice(): void;
 }

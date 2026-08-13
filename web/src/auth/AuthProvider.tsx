@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { getCurrentUser, loginAccount, registerAccount } from '../api/auth';
 import { ApiError } from '../api/client';
+import { queryKeys } from '../api/queryKeys';
 import type { CurrentUser, LoginRequest, RegisterRequest } from '../api/types';
 import {
   AuthContext,
@@ -16,8 +17,6 @@ import {
   type AuthStatus,
 } from './authContext';
 import { tokenStorage } from './tokenStorage';
-
-const currentUserQueryKey = ['auth', 'current-user'] as const;
 
 function isRejectedSession(error: unknown): error is ApiError {
   return (
@@ -48,8 +47,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setUser(null);
     setStatus('unauthenticated');
-    queryClient.removeQueries({ queryKey: currentUserQueryKey });
+    queryClient.clear();
   }, [queryClient]);
+
+  const handleSessionError = useCallback(
+    (error: unknown): boolean => {
+      if (!isRejectedSession(error)) {
+        return false;
+      }
+      setNotice(sessionNotice(error));
+      clearSession();
+      return true;
+    },
+    [clearSession],
+  );
+
+  const refreshCurrentUser =
+    useCallback(async (): Promise<CurrentUser | null> => {
+      if (!accessToken) {
+        return null;
+      }
+      try {
+        const currentUser = await queryClient.fetchQuery({
+          queryKey: queryKeys.currentUser,
+          queryFn: ({ signal }) => getCurrentUser(accessToken, signal),
+          staleTime: 0,
+        });
+        setUser(currentUser);
+        setStatus('authenticated');
+        return currentUser;
+      } catch (error) {
+        handleSessionError(error);
+        throw error;
+      }
+    }, [accessToken, handleSessionError, queryClient]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -58,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     void queryClient
       .fetchQuery({
-        queryKey: currentUserQueryKey,
+        queryKey: queryKeys.currentUser,
         queryFn: ({ signal }) => getCurrentUser(accessToken, signal),
         staleTime: 5 * 60 * 1000,
       })
@@ -72,10 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) {
           return;
         }
-        if (isRejectedSession(error)) {
-          setNotice(sessionNotice(error));
-          clearSession();
-        } else {
+        if (!handleSessionError(error)) {
           setNotice(
             "We couldn't restore your session. Please try signing in again.",
           );
@@ -85,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [accessToken, clearSession, queryClient]);
+  }, [accessToken, handleSessionError, queryClient]);
 
   const login = useCallback(
     async (credentials: LoginRequest): Promise<CurrentUser> => {
@@ -95,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('loading');
       try {
         const currentUser = await queryClient.fetchQuery({
-          queryKey: currentUserQueryKey,
+          queryKey: queryKeys.currentUser,
           queryFn: ({ signal }) => getCurrentUser(token.access_token, signal),
           staleTime: 5 * 60 * 1000,
         });
@@ -124,8 +152,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearNotice = useCallback(() => setNotice(null), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, notice, login, register, logout, clearNotice }),
-    [clearNotice, login, logout, notice, register, status, user],
+    () => ({
+      status,
+      user,
+      accessToken,
+      notice,
+      login,
+      register,
+      refreshCurrentUser,
+      handleSessionError,
+      logout,
+      clearNotice,
+    }),
+    [
+      accessToken,
+      clearNotice,
+      handleSessionError,
+      login,
+      logout,
+      notice,
+      refreshCurrentUser,
+      register,
+      status,
+      user,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
