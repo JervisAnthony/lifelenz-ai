@@ -1,4 +1,8 @@
-import type { WellnessProfile, WellnessSummary } from '../api/types';
+import type {
+  WellnessProfile,
+  WellnessRecord,
+  WellnessSummary,
+} from '../api/types';
 
 export const wellnessProfile: WellnessProfile = {
   profile_id: 'c86bd446-d82a-4448-94b0-653b336ccca5',
@@ -42,4 +46,36 @@ export const wellnessSummary: WellnessSummary = {
       },
     },
   ],
+};
+
+export const hydrationRecord: WellnessRecord = {
+  record_type: 'hydration',
+  metadata: {
+    record_id: '5bb91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T10:30:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    volume_milliliters: 350,
+    beverage_type: 'water',
+    caffeine_milligrams: null,
+  },
+};
+
+export const dailyActivityRecord: WellnessRecord = {
+  record_type: 'daily_activity',
+  metadata: {
+    record_id: '7dd91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-13T10:30:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    activity_date: '2026-08-13',
+    steps: 4200,
+    distance_kilometers: 3.1,
+    active_minutes: 32,
+    active_calories_kcal: 180,
+  },
 };

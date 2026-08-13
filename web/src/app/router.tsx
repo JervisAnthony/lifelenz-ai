@@ -8,6 +8,7 @@ import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ProfilePage } from '../pages/ProfilePage';
+import { RecordsPage } from '../pages/RecordsPage';
 import { RegisterPage } from '../pages/RegisterPage';
 
 export const appRoutes = [
@@ -31,7 +32,10 @@ export const appRoutes = [
         children: [
           {
             element: <ProfileRequiredRoute />,
-            children: [{ index: true, element: <DashboardPage /> }],
+            children: [
+              { index: true, element: <DashboardPage /> },
+              { path: 'records', element: <RecordsPage /> },
+            ],
           },
           { path: 'profile', element: <ProfilePage /> },
         ],

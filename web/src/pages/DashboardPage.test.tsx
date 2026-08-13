@@ -133,6 +133,7 @@ describe('DashboardPage', () => {
       screen.getByRole('navigation', { name: 'Mobile application navigation' }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Profile' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Records' })).toHaveLength(2);
     await userEvent.click(screen.getAllByRole('link', { name: 'Profile' })[0]);
     expect(
       screen.getByRole('heading', { name: 'Profile page' }),
