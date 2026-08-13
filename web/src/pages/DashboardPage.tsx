@@ -1,35 +1,71 @@
-import { useAuth } from '../auth/authContext';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
-const nextSteps = [
-  {
-    label: 'Profile',
-    title: 'Shape your wellness space',
-    body: 'Choose the areas and preferences that matter to you.',
-  },
-  {
-    label: 'Records',
-    title: 'Capture everyday context',
-    body: 'Add structured observations from sleep, movement, mood, and more.',
-  },
-  {
-    label: 'Goals',
-    title: 'Keep intentions in view',
-    body: 'Define personal goals without judgment or prescriptive scoring.',
-  },
-  {
-    label: 'Wellness summary',
-    title: 'Understand your patterns',
-    body: 'Review transparent baselines and mathematical trends over time.',
-  },
-];
+import { ApiError } from '../api/client';
+import { getProfile } from '../api/profile';
+import { queryKeys } from '../api/queryKeys';
+import { getWellnessSummary } from '../api/summary';
+import { useAuth } from '../auth/authContext';
+import { Alert } from '../components/Alert';
+import { MetricSummaryCard } from '../dashboard/MetricSummaryCard';
+import { domainLabel } from '../profile/profileOptions';
+
+function isEmptySummary(error: unknown): boolean {
+  return (
+    error instanceof ApiError && error.code === 'wellness_summary_unavailable'
+  );
+}
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, accessToken, handleSessionError, refreshCurrentUser } =
+    useAuth();
+  const profileQuery = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: async ({ signal }) => {
+      try {
+        return await getProfile(accessToken as string, signal);
+      } catch (error) {
+        handleSessionError(error);
+        if (
+          error instanceof ApiError &&
+          error.code === 'profile_not_configured'
+        ) {
+          void refreshCurrentUser();
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(accessToken),
+    retry: false,
+  });
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.summary,
+    queryFn: async ({ signal }) => {
+      try {
+        return await getWellnessSummary(accessToken as string, signal);
+      } catch (error) {
+        handleSessionError(error);
+        throw error;
+      }
+    },
+    enabled: Boolean(accessToken && profileQuery.data),
+    retry: false,
+  });
+
+  useEffect(() => {
+    document.title = 'Home | LifeLenz';
+  }, []);
+
   if (!user) {
     return null;
   }
 
-  const hasProfile = user.profile_ids.length > 0;
+  const displayName = profileQuery.data?.display_name;
+  const summary = summaryQuery.data;
+  const summaryIsEmpty = Boolean(
+    (summary && summary.metrics.length === 0) ||
+    isEmptySummary(summaryQuery.error),
+  );
 
   return (
     <div className="dashboard">
@@ -37,50 +73,156 @@ export function DashboardPage() {
         <div>
           <p className="eyebrow">Your LifeLenz space</p>
           <h1 id="dashboard-title">
-            Welcome. Your everyday context starts here.
+            {displayName
+              ? `Welcome, ${displayName}.`
+              : 'Your wellness overview'}
           </h1>
           <p>
-            You’re signed in as <strong>{user.email}</strong>. This foundation
-            is ready for the next focused wellness workflows.
+            A clear view of the preferences and recorded patterns LifeLenz can
+            currently summarize.
           </p>
         </div>
-        <div
-          className={`profile-status profile-status--${hasProfile ? 'ready' : 'pending'}`}
-        >
+        <div className="profile-status profile-status--ready">
           <span className="profile-status__dot" aria-hidden="true" />
           <div>
             <span className="profile-status__label">Wellness profile</span>
-            <strong>{hasProfile ? 'Configured' : 'Not configured yet'}</strong>
+            <strong>Configured</strong>
           </div>
         </div>
       </section>
 
       <section
-        className="dashboard__next"
-        aria-labelledby="coming-next-heading"
+        className="dashboard__profile"
+        aria-labelledby="profile-overview-heading"
       >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Foundation ready</p>
-            <h2 id="coming-next-heading">Coming next</h2>
+            <p className="eyebrow">Profile overview</p>
+            <h2 id="profile-overview-heading">What you’re tracking</h2>
           </div>
           <p>
-            These focused experiences are planned, but are not available in this
-            release.
+            Preferences shape future presentation; recorded summary values stay
+            in canonical units.
           </p>
         </div>
-        <div className="next-grid">
-          {nextSteps.map((step, index) => (
-            <article className="next-card" key={step.label}>
-              <span className="next-card__number">0{index + 1}</span>
-              <span className="next-card__status">Coming next</span>
-              <p className="next-card__label">{step.label}</p>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-            </article>
-          ))}
-        </div>
+        {profileQuery.isPending ? (
+          <p className="inline-status" role="status">
+            Loading profile preferences…
+          </p>
+        ) : profileQuery.isError ? (
+          <div className="summary-error">
+            <Alert>We could not load your profile preferences.</Alert>
+            <button
+              className="button button--secondary"
+              onClick={() => void profileQuery.refetch()}
+            >
+              Try profile again
+            </button>
+          </div>
+        ) : (
+          <div className="profile-overview-card">
+            <div>
+              <span>Measurement preference</span>
+              <strong>
+                {profileQuery.data.measurement_system === 'metric'
+                  ? 'Metric'
+                  : 'Imperial'}
+              </strong>
+            </div>
+            <div>
+              <span>Week starts</span>
+              <strong>
+                {profileQuery.data.week_start === 'monday'
+                  ? 'Monday'
+                  : 'Sunday'}
+              </strong>
+            </div>
+            <div className="profile-overview-card__domains">
+              <span>
+                Tracked areas ({profileQuery.data.tracked_domains.length})
+              </span>
+              {profileQuery.data.tracked_domains.length ? (
+                <ul>
+                  {profileQuery.data.tracked_domains.map((domain) => (
+                    <li key={domain}>{domainLabel(domain)}</li>
+                  ))}
+                </ul>
+              ) : (
+                <strong>None selected yet</strong>
+              )}
+            </div>
+          </div>
+        )}
       </section>
+
+      <section className="dashboard__summary" aria-labelledby="summary-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Based on your records</p>
+            <h2 id="summary-heading">Recent wellness summary</h2>
+          </div>
+          <p>
+            Directions are mathematical descriptions, not health judgments or
+            recommendations.
+          </p>
+        </div>
+        {profileQuery.isError ? (
+          <p className="inline-status">
+            Your summary will be available after your profile preferences load.
+          </p>
+        ) : summaryQuery.isPending || !profileQuery.data ? (
+          <p className="inline-status" role="status">
+            Preparing your summary…
+          </p>
+        ) : summaryIsEmpty ? (
+          <div className="dashboard-empty">
+            <span aria-hidden="true">○</span>
+            <div>
+              <h3>Your wellness picture will appear here</h3>
+              <p>
+                Once you begin adding wellness records, LifeLenz will summarize
+                your patterns here. Record entry is coming in the next focused
+                milestone.
+              </p>
+            </div>
+          </div>
+        ) : summaryQuery.isError ? (
+          <div className="summary-error">
+            <Alert>
+              We could not load your wellness summary. Your profile is still
+              available.
+            </Alert>
+            <button
+              className="button button--secondary"
+              onClick={() => void summaryQuery.refetch()}
+            >
+              Try summary again
+            </button>
+          </div>
+        ) : summary ? (
+          <>
+            <p className="summary-source">
+              Based on {summary.generated_from_record_count}{' '}
+              {summary.generated_from_record_count === 1 ? 'record' : 'records'}
+              .
+            </p>
+            <div className="metric-grid">
+              {summary.metrics.map((metric) => (
+                <MetricSummaryCard key={metric.metric} summary={metric} />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </section>
+
+      <aside className="dashboard__next-step">
+        <p className="eyebrow">Coming next</p>
+        <h2>Build your picture one record at a time.</h2>
+        <p>
+          Wellness record entry and goal management are not available in this
+          release yet.
+        </p>
+      </aside>
     </div>
   );
 }

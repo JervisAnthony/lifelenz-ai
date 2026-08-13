@@ -1,49 +1,147 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import { ApiError } from '../api/client';
+import { getProfile } from '../api/profile';
+import { getWellnessSummary } from '../api/summary';
 import { AuthContext } from '../auth/authContext';
 import { AppShell } from '../components/AppShell';
 import { createAuthValue, currentUser } from '../test/authTestUtils';
+import { wellnessProfile, wellnessSummary } from '../test/resourceFixtures';
 import { DashboardPage } from './DashboardPage';
 
+vi.mock('../api/profile', () => ({ getProfile: vi.fn() }));
+vi.mock('../api/summary', () => ({ getWellnessSummary: vi.fn() }));
+
 function renderDashboard(overrides = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   const value = createAuthValue({
     status: 'authenticated',
-    user: currentUser,
+    user: { ...currentUser, profile_ids: [wellnessProfile.profile_id] },
+    accessToken: 'access-token',
     ...overrides,
   });
   render(
-    <AuthContext.Provider value={value}>
-      <MemoryRouter initialEntries={['/app']}>
-        <Routes>
-          <Route path="/login" element={<h1>Sign in page</h1>} />
-          <Route path="/app" element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </AuthContext.Provider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={value}>
+        <MemoryRouter initialEntries={['/app']}>
+          <Routes>
+            <Route path="/login" element={<h1>Sign in page</h1>} />
+            <Route path="/app" element={<AppShell />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="profile" element={<h1>Profile page</h1>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    </QueryClientProvider>,
   );
   return value;
 }
 
 describe('DashboardPage', () => {
-  it('shows safe current-user details and clearly labels unimplemented features', () => {
+  it('shows an honest empty state when no wellness records exist', async () => {
+    vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
+    vi.mocked(getWellnessSummary).mockRejectedValue(
+      new ApiError('unavailable', {
+        kind: 'api',
+        status: 404,
+        code: 'wellness_summary_unavailable',
+      }),
+    );
     renderDashboard();
 
-    expect(screen.getAllByText(currentUser.email).length).toBeGreaterThan(0);
-    expect(screen.getByText('Not configured yet')).toBeInTheDocument();
     expect(
-      screen.getAllByText('Coming next', { selector: 'span' }),
-    ).toHaveLength(4);
+      await screen.findByText('Your wellness picture will appear here'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/record entry is coming/i)).toBeInTheDocument();
     expect(screen.queryByText(/calories today/i)).not.toBeInTheDocument();
+  });
+
+  it('renders profile context and real canonical summary values', async () => {
+    vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
+    vi.mocked(getWellnessSummary).mockResolvedValue(wellnessSummary);
+    renderDashboard();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome, River.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sleep')).toBeInTheDocument();
+    expect(screen.getByText('Hydration')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Water intake' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('375 mL')).toBeInTheDocument();
+    expect(screen.getByText('Increasing')).toBeInTheDocument();
+    expect(screen.getByText('Based on 2 records.')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/improving|healthy|unhealthy/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers retry for a recoverable summary failure', async () => {
+    vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
+    vi.mocked(getWellnessSummary).mockRejectedValue(
+      new Error('server unavailable'),
+    );
+    renderDashboard();
+
+    expect(
+      await screen.findByRole('button', { name: 'Try summary again' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'We could not load your wellness summary.',
+    );
+  });
+
+  it('offers retry without leaving the summary loading when profile loading fails', async () => {
+    vi.mocked(getProfile).mockRejectedValue(new Error('profile unavailable'));
+    renderDashboard();
+
+    expect(
+      await screen.findByRole('button', { name: 'Try profile again' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/summary will be available after your profile/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Preparing your summary…'),
+    ).not.toBeInTheDocument();
+    expect(getWellnessSummary).not.toHaveBeenCalled();
+  });
+
+  it('provides real Home and Profile navigation on desktop and mobile', async () => {
+    vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
+    vi.mocked(getWellnessSummary).mockRejectedValue(
+      new ApiError('unavailable', {
+        kind: 'api',
+        status: 404,
+        code: 'wellness_summary_unavailable',
+      }),
+    );
+    renderDashboard();
+    await screen.findByText('Your wellness picture will appear here');
+
     expect(
       screen.getByRole('navigation', { name: 'Application navigation' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Mobile application navigation' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Profile' })).toHaveLength(2);
+    await userEvent.click(screen.getAllByRole('link', { name: 'Profile' })[0]);
+    expect(
+      screen.getByRole('heading', { name: 'Profile page' }),
     ).toBeInTheDocument();
   });
 
   it('clears the client session and returns to login on logout', async () => {
+    vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
+    vi.mocked(getWellnessSummary).mockResolvedValue(wellnessSummary);
     const logout = vi.fn();
     renderDashboard({ logout });
 

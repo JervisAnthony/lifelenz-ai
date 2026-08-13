@@ -22,6 +22,10 @@ export function AppShell() {
             <span aria-hidden="true">⌂</span>
             Home
           </NavLink>
+          <NavLink to="/app/profile">
+            <span aria-hidden="true">◇</span>
+            Profile
+          </NavLink>
         </nav>
         <p className="sidebar__note">
           A clearer view of your everyday patterns.
@@ -39,6 +43,12 @@ export function AppShell() {
             </Button>
           </div>
         </header>
+        <nav className="mobile-nav" aria-label="Mobile application navigation">
+          <NavLink to="/app" end>
+            Home
+          </NavLink>
+          <NavLink to="/app/profile">Profile</NavLink>
+        </nav>
         <main className="app-content">
           <Outlet />
         </main>
