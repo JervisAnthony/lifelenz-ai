@@ -22,6 +22,10 @@ export function AppShell() {
             <span aria-hidden="true">⌂</span>
             Home
           </NavLink>
+          <NavLink to="/app/records">
+            <span aria-hidden="true">＋</span>
+            Records
+          </NavLink>
           <NavLink to="/app/profile">
             <span aria-hidden="true">◇</span>
             Profile
@@ -47,6 +51,7 @@ export function AppShell() {
           <NavLink to="/app" end>
             Home
           </NavLink>
+          <NavLink to="/app/records">Records</NavLink>
           <NavLink to="/app/profile">Profile</NavLink>
         </nav>
         <main className="app-content">

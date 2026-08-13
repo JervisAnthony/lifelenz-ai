@@ -70,8 +70,11 @@ registration and login, authoritative current-user restoration, protected routin
 wellness-profile onboarding, profile-preference editing, and a responsive authenticated application
 shell. Its initial dashboard presents real structured wellness summaries when records exist and an
 honest empty state when they do not. Summary measurements remain in the backend's canonical units;
-the stored measurement-system preference does not yet convert them in the browser. Wellness-record
-entry, goal-management UI, and full analytics visualizations remain focused future web milestones.
+the stored measurement-system preference does not yet convert them in the browser. A focused record
+entry foundation now supports Sleep, Hydration, and Subjective wellness check-in creation through
+the authenticated backend, plus a restrained recent-record list for all current record types. The
+remaining seven creation forms, record editing or deletion, full history and filtering, goal-management
+UI, and analytics visualizations remain future web milestones.
 
 The planned MVP capability areas are:
 
@@ -162,8 +165,12 @@ persisted in browser storage.
 After authentication, the web application derives onboarding state from the server-owned profile
 identifiers returned by `/api/v1/auth/me`. Users without a profile are guided through the existing
 profile API; configured users can review their preferences and open a summary-backed dashboard. The
-web interface currently supports Home and Profile only. Wellness-record entry, record history,
-goal-management UI, and chart-based visualization are not yet implemented.
+web interface provides Home, Records, and Profile destinations. Records are persisted by the existing
+authenticated API; successful creation refreshes the server-owned record list and invalidates the
+structured summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent
+with an explicit UTC offset, and canonical units are preserved. Record editing and deletion, advanced
+history and filtering, the remaining record-entry types, goal-management UI, and chart-based
+visualization are not yet implemented.
 
 ## Continuous integration
 

@@ -5,7 +5,7 @@ import { createAuthValue, currentUser } from '../test/authTestUtils';
 import { AuthContext } from './authContext';
 import { ProfileRequiredRoute } from './ProfileRequiredRoute';
 
-function renderGate(profileIds: string[]) {
+function renderGate(profileIds: string[], initialEntry = '/app') {
   render(
     <AuthContext.Provider
       value={createAuthValue({
@@ -13,11 +13,12 @@ function renderGate(profileIds: string[]) {
         user: { ...currentUser, profile_ids: profileIds },
       })}
     >
-      <MemoryRouter initialEntries={['/app']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/app/profile" element={<h1>Profile setup</h1>} />
           <Route element={<ProfileRequiredRoute />}>
             <Route path="/app" element={<h1>Dashboard</h1>} />
+            <Route path="/app/records" element={<h1>Records</h1>} />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -37,6 +38,13 @@ describe('ProfileRequiredRoute', () => {
     renderGate(['profile-1']);
     expect(
       screen.getByRole('heading', { name: 'Dashboard' }),
+    ).toBeInTheDocument();
+  });
+
+  it('protects the records route with the same configured-profile gate', () => {
+    renderGate([], '/app/records');
+    expect(
+      screen.getByRole('heading', { name: 'Profile setup' }),
     ).toBeInTheDocument();
   });
 });
