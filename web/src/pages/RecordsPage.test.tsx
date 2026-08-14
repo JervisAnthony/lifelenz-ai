@@ -50,6 +50,7 @@ function renderRecords() {
             <Route path="/app" element={<AppShell />}>
               <Route index element={<h1>Home page</h1>} />
               <Route path="records" element={<RecordsPage />} />
+              <Route path="goals" element={<h1>Goals page</h1>} />
               <Route path="profile" element={<h1>Profile page</h1>} />
             </Route>
           </Routes>
@@ -337,7 +338,7 @@ describe('RecordsPage', () => {
     expect(screen.getByLabelText('Sleep start')).toBeInTheDocument();
   });
 
-  it('provides real Home, Records, and Profile navigation without dead links', async () => {
+  it('provides real Home, Records, Goals, and Profile navigation without dead links', async () => {
     vi.mocked(listWellnessRecords).mockResolvedValue([]);
     renderRecords();
     await screen.findByText('No wellness records yet');
@@ -345,9 +346,12 @@ describe('RecordsPage', () => {
     const desktopNav = screen.getByRole('navigation', {
       name: 'Application navigation',
     });
-    expect(within(desktopNav).getAllByRole('link')).toHaveLength(3);
+    expect(within(desktopNav).getAllByRole('link')).toHaveLength(4);
     expect(
       within(desktopNav).getByRole('link', { name: 'Records' }),
     ).toHaveClass('active');
+    expect(
+      within(desktopNav).getByRole('link', { name: 'Goals' }),
+    ).toHaveAttribute('href', '/app/goals');
   });
 });

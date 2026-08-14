@@ -26,6 +26,10 @@ export function AppShell() {
             <span aria-hidden="true">＋</span>
             Records
           </NavLink>
+          <NavLink to="/app/goals">
+            <span aria-hidden="true">◎</span>
+            Goals
+          </NavLink>
           <NavLink to="/app/profile">
             <span aria-hidden="true">◇</span>
             Profile
@@ -52,6 +56,7 @@ export function AppShell() {
             Home
           </NavLink>
           <NavLink to="/app/records">Records</NavLink>
+          <NavLink to="/app/goals">Goals</NavLink>
           <NavLink to="/app/profile">Profile</NavLink>
         </nav>
         <main className="app-content">

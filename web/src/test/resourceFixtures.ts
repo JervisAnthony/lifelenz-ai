@@ -1,8 +1,31 @@
 import type {
+  WellnessGoal,
   WellnessProfile,
   WellnessRecord,
   WellnessSummary,
 } from '../api/types';
+
+export const wellnessGoal: WellnessGoal = {
+  goal_id: 'e5e91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+  target: {
+    metric: 'water_intake',
+    value: 1234,
+    unit: 'milliliters',
+  },
+  direction: 'at_least',
+  status: 'active',
+  start_date: '2026-08-01',
+  target_date: '2026-09-01',
+  title: 'Synthetic hydration target',
+  description: 'A neutral fixture used only for automated tests.',
+};
+
+export const updatedWellnessGoal: WellnessGoal = {
+  ...wellnessGoal,
+  target: { ...wellnessGoal.target, value: 2345 },
+  status: 'paused',
+  title: 'Updated synthetic target',
+};
 
 export const wellnessProfile: WellnessProfile = {
   profile_id: 'c86bd446-d82a-4448-94b0-653b336ccca5',

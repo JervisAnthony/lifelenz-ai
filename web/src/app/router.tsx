@@ -4,6 +4,7 @@ import { ProtectedRoute, PublicOnlyRoute } from '../auth/ProtectedRoute';
 import { ProfileRequiredRoute } from '../auth/ProfileRequiredRoute';
 import { AppShell } from '../components/AppShell';
 import { DashboardPage } from '../pages/DashboardPage';
+import { GoalsPage } from '../pages/GoalsPage';
 import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -35,6 +36,7 @@ export const appRoutes = [
             children: [
               { index: true, element: <DashboardPage /> },
               { path: 'records', element: <RecordsPage /> },
+              { path: 'goals', element: <GoalsPage /> },
             ],
           },
           { path: 'profile', element: <ProfilePage /> },
