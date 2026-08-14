@@ -142,6 +142,32 @@ export interface WellnessSummary {
   generated_from_record_count: number;
 }
 
+export type GoalDirection =
+  'at_least' | 'at_most' | 'exactly' | 'increase' | 'decrease' | 'maintain';
+
+export type GoalStatus =
+  'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+
+export interface GoalTarget {
+  metric: MetricIdentifier;
+  value: number;
+  unit: MeasurementUnit;
+}
+
+export interface WellnessGoalRequest {
+  target: GoalTarget;
+  direction: GoalDirection;
+  status: GoalStatus;
+  start_date: string | null;
+  target_date: string | null;
+  title: string | null;
+  description: string | null;
+}
+
+export interface WellnessGoal extends WellnessGoalRequest {
+  goal_id: string;
+}
+
 export type WellnessRecordType =
   | 'sleep'
   | 'daily_activity'

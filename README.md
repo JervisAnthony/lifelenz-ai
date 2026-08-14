@@ -74,8 +74,10 @@ the stored measurement-system preference does not yet convert them in the browse
 entry foundation now supports authenticated creation for all ten current record types: Sleep,
 Daily Activity, Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness
 check-in, Menstrual Bleeding, and Menstrual Cycle. A restrained recent-record list covers the same
-record types. Record editing or deletion, full history and filtering, goal-management UI, analytics
-visualizations, end-to-end browser coverage, deployment, and release hardening remain future work.
+record types. Authenticated wellness-goal management now supports listing, creation, full-field
+replacement, status changes, and deliberate confirmed deletion through the profile-scoped API.
+Record editing or deletion, full history and filtering, analytics visualizations, end-to-end browser
+coverage, deployment, and release hardening remain future work.
 
 The planned MVP capability areas are:
 
@@ -166,12 +168,12 @@ persisted in browser storage.
 After authentication, the web application derives onboarding state from the server-owned profile
 identifiers returned by `/api/v1/auth/me`. Users without a profile are guided through the existing
 profile API; configured users can review their preferences and open a summary-backed dashboard. The
-web interface provides Home, Records, and Profile destinations. Records are persisted by the existing
+web interface provides Home, Records, Goals, and Profile destinations. Records and goals are persisted by the existing
 authenticated API; successful creation refreshes the server-owned record list and invalidates the
 structured summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent
 with an explicit UTC offset, and canonical units are preserved. Record editing and deletion, advanced
-history and filtering, goal-management UI, chart-based visualization, end-to-end browser coverage,
-and production deployment are not yet implemented.
+history and filtering, chart-based visualization, end-to-end browser coverage, and production
+deployment are not yet implemented.
 
 ## Continuous integration
 

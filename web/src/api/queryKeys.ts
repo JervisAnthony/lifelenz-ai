@@ -4,4 +4,6 @@ export const queryKeys = {
   summary: ['summary'] as const,
   records: ['records'] as const,
   record: (recordId: string) => ['record', recordId] as const,
+  goals: ['goals'] as const,
+  goal: (goalId: string) => ['goal', goalId] as const,
 };

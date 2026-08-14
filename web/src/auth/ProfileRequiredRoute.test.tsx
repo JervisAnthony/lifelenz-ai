@@ -19,6 +19,7 @@ function renderGate(profileIds: string[], initialEntry = '/app') {
           <Route element={<ProfileRequiredRoute />}>
             <Route path="/app" element={<h1>Dashboard</h1>} />
             <Route path="/app/records" element={<h1>Records</h1>} />
+            <Route path="/app/goals" element={<h1>Goals</h1>} />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -43,6 +44,13 @@ describe('ProfileRequiredRoute', () => {
 
   it('protects the records route with the same configured-profile gate', () => {
     renderGate([], '/app/records');
+    expect(
+      screen.getByRole('heading', { name: 'Profile setup' }),
+    ).toBeInTheDocument();
+  });
+
+  it('protects the goals route with the configured-profile gate', () => {
+    renderGate([], '/app/goals');
     expect(
       screen.getByRole('heading', { name: 'Profile setup' }),
     ).toBeInTheDocument();
