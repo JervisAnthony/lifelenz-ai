@@ -349,7 +349,34 @@ export interface SubjectiveCheckInCreateRequest {
   data: SubjectiveCheckInData;
 }
 
+export interface DailyActivityRecordCreateRequest {
+  record_type: 'daily_activity';
+  metadata: RecordMetadataRequest;
+  data: {
+    activity_date: string;
+    steps?: number;
+    distance_kilometers?: number;
+    active_minutes?: number;
+    active_calories_kcal?: number;
+  };
+}
+
+export interface WorkoutRecordCreateRequest {
+  record_type: 'workout';
+  metadata: RecordMetadataRequest;
+  data: WorkoutData;
+}
+
+export interface BodyMeasurementRecordCreateRequest {
+  record_type: 'body_measurement';
+  metadata: RecordMetadataRequest;
+  data: BodyMeasurementData;
+}
+
 export type WellnessRecordCreateRequest =
   | SleepRecordCreateRequest
   | HydrationRecordCreateRequest
-  | SubjectiveCheckInCreateRequest;
+  | SubjectiveCheckInCreateRequest
+  | DailyActivityRecordCreateRequest
+  | WorkoutRecordCreateRequest
+  | BodyMeasurementRecordCreateRequest;

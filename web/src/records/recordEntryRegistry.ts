@@ -1,8 +1,11 @@
 import type { ComponentType } from 'react';
 
+import { BodyMeasurementRecordForm } from './forms/BodyMeasurementRecordForm';
+import { DailyActivityRecordForm } from './forms/DailyActivityRecordForm';
 import { HydrationRecordForm } from './forms/HydrationRecordForm';
 import { SleepRecordForm } from './forms/SleepRecordForm';
 import { SubjectiveCheckInForm } from './forms/SubjectiveCheckInForm';
+import { WorkoutRecordForm } from './forms/WorkoutRecordForm';
 import type { RecordFormProps } from './forms/formTypes';
 import { recordEntryOptions, type RecordEntryType } from './recordTypes';
 
@@ -13,6 +16,9 @@ const formComponents: Record<
   sleep: SleepRecordForm,
   hydration: HydrationRecordForm,
   subjective_check_in: SubjectiveCheckInForm,
+  daily_activity: DailyActivityRecordForm,
+  workout: WorkoutRecordForm,
+  body_measurement: BodyMeasurementRecordForm,
 };
 
 export const recordEntryRegistry = recordEntryOptions.map((option) => ({

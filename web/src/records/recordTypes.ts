@@ -13,7 +13,13 @@ export const recordTypeLabels: Record<WellnessRecordType, string> = {
   menstrual_cycle: 'Menstrual cycle',
 };
 
-export type RecordEntryType = 'sleep' | 'hydration' | 'subjective_check_in';
+export type RecordEntryType =
+  | 'sleep'
+  | 'hydration'
+  | 'subjective_check_in'
+  | 'daily_activity'
+  | 'workout'
+  | 'body_measurement';
 
 export const recordEntryOptions: ReadonlyArray<{
   type: RecordEntryType;
@@ -34,5 +40,20 @@ export const recordEntryOptions: ReadonlyArray<{
     type: 'subjective_check_in',
     label: 'Wellness check-in',
     description: 'Record your own mood, energy, and stress scores.',
+  },
+  {
+    type: 'daily_activity',
+    label: 'Daily activity',
+    description: 'Record movement totals for a calendar date.',
+  },
+  {
+    type: 'workout',
+    label: 'Workout',
+    description: 'Record a completed workout and its timing.',
+  },
+  {
+    type: 'body_measurement',
+    label: 'Body measurement',
+    description: 'Record neutral measurements in canonical units.',
   },
 ];
