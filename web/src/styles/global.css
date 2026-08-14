@@ -1258,6 +1258,41 @@ fieldset.profile-form__section {
   font-weight: 700;
 }
 
+.record-form__fieldset-hint {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.menstrual-symptoms__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.menstrual-symptom {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.menstrual-symptom > label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.menstrual-symptom input {
+  accent-color: var(--color-primary);
+}
+
+.menstrual-symptom__intensity {
+  margin-top: var(--space-3);
+}
+
 .field select,
 .field textarea {
   width: 100%;
@@ -1548,7 +1583,8 @@ fieldset.profile-form__section {
   .choice-grid--two,
   .domain-grid,
   .metric-grid,
-  .record-form__grid {
+  .record-form__grid,
+  .menstrual-symptoms__list {
     grid-template-columns: 1fr;
   }
 

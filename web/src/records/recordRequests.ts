@@ -3,11 +3,21 @@ import type {
   BodyMeasurementRecordCreateRequest,
   CheckInTag,
   DailyActivityRecordCreateRequest,
+  DailyNutritionRecordCreateRequest,
   HydrationRecordCreateRequest,
   MoodCategory,
+  CycleSymptom,
+  DailyNutritionData,
+  MealNutritionData,
+  MealRecordCreateRequest,
+  MealType,
+  MenstrualBleedingRecordCreateRequest,
+  MenstrualCycleRecordCreateRequest,
+  MenstrualFlow,
   SleepQuality,
   SleepRecordCreateRequest,
   SubjectiveCheckInCreateRequest,
+  SymptomIntensity,
   WorkoutRecordCreateRequest,
   WorkoutType,
 } from '../api/types';
@@ -301,6 +311,162 @@ export function buildBodyMeasurementRecordRequest(
         value.waistCircumferenceCentimeters,
         'Waist circumference',
       ),
+    },
+  };
+}
+
+export interface NutritionFormValue {
+  caloriesKcal: string;
+  proteinGrams: string;
+  carbohydratesGrams: string;
+  fatGrams: string;
+  fibreGrams: string;
+}
+
+function buildNutritionData(value: NutritionFormValue): MealNutritionData {
+  const nutrition = {
+    calories_kcal: optionalNonNegativeNumber(value.caloriesKcal, 'Energy'),
+    protein_grams: optionalNonNegativeNumber(value.proteinGrams, 'Protein'),
+    carbohydrates_grams: optionalNonNegativeNumber(
+      value.carbohydratesGrams,
+      'Carbohydrates',
+    ),
+    fat_grams: optionalNonNegativeNumber(value.fatGrams, 'Fat'),
+    fibre_grams: optionalNonNegativeNumber(value.fibreGrams, 'Fibre'),
+  };
+  if (Object.values(nutrition).every((measurement) => measurement === null)) {
+    throw new Error('Enter at least one nutrition measurement.');
+  }
+  return nutrition;
+}
+
+function validDateOnly(value: string, label: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`Enter a complete ${label.toLowerCase()}.`);
+  }
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value
+  ) {
+    throw new Error(`Enter a valid ${label.toLowerCase()}.`);
+  }
+  return value;
+}
+
+export interface MealFormValue {
+  recordedAt: string;
+  mealType: MealType | '';
+  name: string;
+  nutrition: NutritionFormValue;
+  notes: string;
+}
+
+export function buildMealRecordRequest(
+  value: MealFormValue,
+): MealRecordCreateRequest {
+  if (!value.mealType) {
+    throw new Error('Choose a meal type.');
+  }
+  return {
+    record_type: 'meal',
+    metadata: metadata(localDateTimeToAwareIso(value.recordedAt), value.notes),
+    data: {
+      meal_type: value.mealType,
+      nutrition: buildNutritionData(value.nutrition),
+      name: value.name.trim() || null,
+    },
+  };
+}
+
+export interface DailyNutritionFormValue {
+  recordedAt: string;
+  nutritionDate: string;
+  mealCount: string;
+  nutrition: NutritionFormValue;
+  notes: string;
+}
+
+export function buildDailyNutritionRecordRequest(
+  value: DailyNutritionFormValue,
+): DailyNutritionRecordCreateRequest {
+  let mealCount: number | null = null;
+  if (value.mealCount !== '') {
+    mealCount = Number(value.mealCount);
+    if (!Number.isInteger(mealCount) || mealCount < 0) {
+      throw new Error('Meal count must be a whole number of zero or more.');
+    }
+  }
+  const data: DailyNutritionData = {
+    nutrition_date: validDateOnly(value.nutritionDate, 'nutrition date'),
+    nutrition: buildNutritionData(value.nutrition),
+    meal_count: mealCount,
+  };
+  return {
+    record_type: 'daily_nutrition',
+    metadata: metadata(localDateTimeToAwareIso(value.recordedAt), value.notes),
+    data,
+  };
+}
+
+export interface MenstrualSymptomFormValue {
+  symptom: CycleSymptom;
+  intensity: SymptomIntensity | '';
+}
+
+export interface MenstrualBleedingFormValue {
+  recordedAt: string;
+  flow: MenstrualFlow | '';
+  symptoms: MenstrualSymptomFormValue[];
+  notes: string;
+}
+
+export function buildMenstrualBleedingRecordRequest(
+  value: MenstrualBleedingFormValue,
+): MenstrualBleedingRecordCreateRequest {
+  if (!value.flow) {
+    throw new Error('Choose a flow description.');
+  }
+  const symptomTypes = value.symptoms.map((entry) => entry.symptom);
+  if (new Set(symptomTypes).size !== symptomTypes.length) {
+    throw new Error('Each symptom can be recorded once.');
+  }
+  return {
+    record_type: 'menstrual_bleeding',
+    metadata: metadata(localDateTimeToAwareIso(value.recordedAt), value.notes),
+    data: {
+      flow: value.flow,
+      symptoms: value.symptoms.map((entry) => ({
+        symptom: entry.symptom,
+        intensity: entry.intensity || null,
+      })),
+    },
+  };
+}
+
+export interface MenstrualCycleFormValue {
+  recordedAt: string;
+  startDate: string;
+  endDate: string;
+  notes: string;
+}
+
+export function buildMenstrualCycleRecordRequest(
+  value: MenstrualCycleFormValue,
+): MenstrualCycleRecordCreateRequest {
+  const startDate = validDateOnly(value.startDate, 'cycle start date');
+  const endDate = value.endDate
+    ? validDateOnly(value.endDate, 'cycle end date')
+    : null;
+  if (endDate !== null && endDate < startDate) {
+    throw new Error('Cycle end date cannot be before the start date.');
+  }
+  return {
+    record_type: 'menstrual_cycle',
+    metadata: metadata(localDateTimeToAwareIso(value.recordedAt), value.notes),
+    data: {
+      start_date: startDate,
+      end_date: endDate,
     },
   };
 }

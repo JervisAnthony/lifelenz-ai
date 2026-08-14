@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
@@ -13,7 +13,11 @@ import { createAuthValue, currentUser } from '../test/authTestUtils';
 import {
   bodyMeasurementRecord,
   dailyActivityRecord,
+  dailyNutritionRecord,
   hydrationRecord,
+  mealRecord,
+  menstrualBleedingRecord,
+  menstrualCycleRecord,
   wellnessProfile,
   wellnessSummary,
   workoutRecord,
@@ -57,7 +61,7 @@ function renderRecords() {
 }
 
 describe('RecordsPage', () => {
-  it('renders the empty state and exactly the six implemented entry types', async () => {
+  it('renders the empty state and exactly the ten implemented entry types', async () => {
     vi.mocked(listWellnessRecords).mockResolvedValue([]);
     renderRecords();
 
@@ -65,7 +69,7 @@ describe('RecordsPage', () => {
       await screen.findByRole('heading', { name: 'No wellness records yet' }),
     ).toBeInTheDocument();
     const selector = screen.getByRole('group', { name: 'Record type' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(6);
+    expect(within(selector).getAllByRole('button')).toHaveLength(10);
     expect(
       within(selector).getByRole('button', { name: /^Sleep/ }),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -84,7 +88,18 @@ describe('RecordsPage', () => {
     expect(
       within(selector).getByRole('button', { name: /^Body measurement/ }),
     ).toBeInTheDocument();
-    expect(within(selector).queryByText('Meal')).not.toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Meal/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Daily nutrition/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Menstrual bleeding/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Menstrual cycle/ }),
+    ).toBeInTheDocument();
   });
 
   it('switches among each implemented form', async () => {
@@ -106,6 +121,16 @@ describe('RecordsPage', () => {
     expect(screen.getByLabelText('Workout type')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Body measurement/ }));
     expect(screen.getByLabelText('Weight (kilograms)')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Meal/ }));
+    expect(screen.getByLabelText('Meal type')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Daily nutrition/ }));
+    expect(screen.getByLabelText('Nutrition date')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /^Menstrual bleeding/ }),
+    );
+    expect(screen.getByLabelText('Flow description')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Menstrual cycle/ }));
+    expect(screen.getByLabelText('Cycle start date')).toBeInTheDocument();
   });
 
   it('creates a record, refreshes the recent list and summary, then resets the form', async () => {
@@ -173,6 +198,7 @@ describe('RecordsPage', () => {
       success: 'Daily activity record saved.',
       type: 'daily_activity',
       record: dailyActivityRecord,
+      resetValue: null,
     },
     {
       selector: /^Workout/,
@@ -182,6 +208,7 @@ describe('RecordsPage', () => {
       success: 'Workout record saved.',
       type: 'workout',
       record: workoutRecord,
+      resetValue: null,
     },
     {
       selector: /^Body measurement/,
@@ -191,17 +218,84 @@ describe('RecordsPage', () => {
       success: 'Body measurement record saved.',
       type: 'body_measurement',
       record: bodyMeasurementRecord,
+      resetValue: null,
+    },
+    {
+      selector: /^Meal/,
+      field: 'Energy (kcal)',
+      value: '420',
+      selectField: 'Meal type',
+      selectValue: 'lunch',
+      save: 'Save meal record',
+      success: 'Meal record saved.',
+      type: 'meal',
+      record: mealRecord,
+      resetValue: null,
+    },
+    {
+      selector: /^Daily nutrition/,
+      field: 'Protein (grams)',
+      value: '24',
+      save: 'Save daily nutrition record',
+      success: 'Daily nutrition record saved.',
+      type: 'daily_nutrition',
+      record: dailyNutritionRecord,
+      resetValue: null,
+    },
+    {
+      selector: /^Menstrual bleeding/,
+      field: 'Notes (optional)',
+      value: 'Observation note',
+      selectField: 'Flow description',
+      selectValue: 'light',
+      save: 'Save bleeding observation',
+      success: 'Menstrual bleeding observation record saved.',
+      type: 'menstrual_bleeding',
+      record: menstrualBleedingRecord,
+      resetValue: '',
+    },
+    {
+      selector: /^Menstrual cycle/,
+      field: 'Cycle end date (optional)',
+      value: '2026-08-18',
+      save: 'Save menstrual cycle',
+      success: 'Menstrual cycle record saved.',
+      type: 'menstrual_cycle',
+      record: menstrualCycleRecord,
+      resetValue: '',
     },
   ])(
     'saves and resets the $type form only after server success',
-    async ({ selector, field, value, save, success, type, record }) => {
+    async ({
+      selector,
+      field,
+      value,
+      selectField,
+      selectValue,
+      save,
+      success,
+      type,
+      record,
+      resetValue,
+    }) => {
       vi.mocked(listWellnessRecords).mockResolvedValue([]);
       vi.mocked(createWellnessRecord).mockResolvedValue(record);
       renderRecords();
       const user = userEvent.setup();
       await screen.findByText('No wellness records yet');
       await user.click(screen.getByRole('button', { name: selector }));
-      await user.type(screen.getByLabelText(field), value);
+      if (selectField && selectValue) {
+        await user.selectOptions(
+          screen.getByLabelText(selectField),
+          selectValue,
+        );
+      }
+      const input = screen.getByLabelText(field);
+      if (input.getAttribute('type') === 'date') {
+        fireEvent.change(input, { target: { value } });
+      } else {
+        await user.type(input, value);
+      }
       await user.click(screen.getByRole('button', { name: save }));
 
       expect(await screen.findByText(success)).toBeInTheDocument();
@@ -209,11 +303,11 @@ describe('RecordsPage', () => {
         'access-token',
         expect.objectContaining({ record_type: type }),
       );
-      expect(screen.getByLabelText(field)).toHaveValue(null);
+      expect(screen.getByLabelText(field)).toHaveValue(resetValue);
     },
   );
 
-  it('safely presents unsupported-create record types with exhaustive labels', async () => {
+  it('safely presents recent record types with exhaustive labels', async () => {
     vi.mocked(listWellnessRecords).mockResolvedValue([
       dailyActivityRecord,
       hydrationRecord,

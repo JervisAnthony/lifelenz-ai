@@ -373,10 +373,38 @@ export interface BodyMeasurementRecordCreateRequest {
   data: BodyMeasurementData;
 }
 
+export interface MealRecordCreateRequest {
+  record_type: 'meal';
+  metadata: RecordMetadataRequest;
+  data: MealData;
+}
+
+export interface DailyNutritionRecordCreateRequest {
+  record_type: 'daily_nutrition';
+  metadata: RecordMetadataRequest;
+  data: DailyNutritionData;
+}
+
+export interface MenstrualBleedingRecordCreateRequest {
+  record_type: 'menstrual_bleeding';
+  metadata: RecordMetadataRequest;
+  data: MenstrualBleedingData;
+}
+
+export interface MenstrualCycleRecordCreateRequest {
+  record_type: 'menstrual_cycle';
+  metadata: RecordMetadataRequest;
+  data: MenstrualCycleData;
+}
+
 export type WellnessRecordCreateRequest =
   | SleepRecordCreateRequest
   | HydrationRecordCreateRequest
   | SubjectiveCheckInCreateRequest
   | DailyActivityRecordCreateRequest
   | WorkoutRecordCreateRequest
-  | BodyMeasurementRecordCreateRequest;
+  | BodyMeasurementRecordCreateRequest
+  | MealRecordCreateRequest
+  | DailyNutritionRecordCreateRequest
+  | MenstrualBleedingRecordCreateRequest
+  | MenstrualCycleRecordCreateRequest;
