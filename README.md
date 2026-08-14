@@ -71,11 +71,11 @@ wellness-profile onboarding, profile-preference editing, and a responsive authen
 shell. Its initial dashboard presents real structured wellness summaries when records exist and an
 honest empty state when they do not. Summary measurements remain in the backend's canonical units;
 the stored measurement-system preference does not yet convert them in the browser. A focused record
-entry foundation now supports Sleep, Hydration, Subjective wellness check-in, Daily Activity,
-Workout, and Body Measurement creation through the authenticated backend, plus a restrained
-recent-record list for all current record types. Meal, Daily Nutrition, Menstrual Bleeding, and
-Menstrual Cycle creation forms remain future work, as do record editing or deletion, full history
-and filtering, goal-management UI, analytics visualizations, and deployment.
+entry foundation now supports authenticated creation for all ten current record types: Sleep,
+Daily Activity, Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness
+check-in, Menstrual Bleeding, and Menstrual Cycle. A restrained recent-record list covers the same
+record types. Record editing or deletion, full history and filtering, goal-management UI, analytics
+visualizations, end-to-end browser coverage, deployment, and release hardening remain future work.
 
 The planned MVP capability areas are:
 
@@ -170,8 +170,8 @@ web interface provides Home, Records, and Profile destinations. Records are pers
 authenticated API; successful creation refreshes the server-owned record list and invalidates the
 structured summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent
 with an explicit UTC offset, and canonical units are preserved. Record editing and deletion, advanced
-history and filtering, the remaining record-entry types, goal-management UI, and chart-based
-visualization are not yet implemented.
+history and filtering, goal-management UI, chart-based visualization, end-to-end browser coverage,
+and production deployment are not yet implemented.
 
 ## Continuous integration
 

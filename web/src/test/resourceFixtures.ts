@@ -116,3 +116,73 @@ export const bodyMeasurementRecord: WellnessRecord = {
     waist_circumference_centimeters: null,
   },
 };
+
+export const mealRecord: WellnessRecord = {
+  record_type: 'meal',
+  metadata: {
+    record_id: 'a1a91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T12:30:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    meal_type: 'lunch',
+    name: 'Rice and vegetables',
+    nutrition: {
+      calories_kcal: 420,
+      protein_grams: null,
+      carbohydrates_grams: null,
+      fat_grams: null,
+      fibre_grams: null,
+    },
+  },
+};
+
+export const dailyNutritionRecord: WellnessRecord = {
+  record_type: 'daily_nutrition',
+  metadata: {
+    record_id: 'b2b91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T20:00:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    nutrition_date: '2026-08-14',
+    meal_count: null,
+    nutrition: {
+      calories_kcal: null,
+      protein_grams: 24,
+      carbohydrates_grams: null,
+      fat_grams: null,
+      fibre_grams: null,
+    },
+  },
+};
+
+export const menstrualBleedingRecord: WellnessRecord = {
+  record_type: 'menstrual_bleeding',
+  metadata: {
+    record_id: 'c3c91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T09:00:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    flow: 'light',
+    symptoms: [],
+  },
+};
+
+export const menstrualCycleRecord: WellnessRecord = {
+  record_type: 'menstrual_cycle',
+  metadata: {
+    record_id: 'd4d91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T09:00:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    start_date: '2026-08-14',
+    end_date: null,
+  },
+};
