@@ -79,3 +79,40 @@ export const dailyActivityRecord: WellnessRecord = {
     active_calories_kcal: 180,
   },
 };
+
+export const workoutRecord: WellnessRecord = {
+  record_type: 'workout',
+  metadata: {
+    record_id: '8ee91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T07:30:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    period: {
+      start: '2026-08-14T06:30:00+05:30',
+      end: '2026-08-14T07:30:00+05:30',
+    },
+    workout_type: 'strength_training',
+    distance_kilometers: null,
+    active_calories_kcal: 240,
+    perceived_exertion: 6,
+    average_heart_rate_bpm: 118,
+  },
+};
+
+export const bodyMeasurementRecord: WellnessRecord = {
+  record_type: 'body_measurement',
+  metadata: {
+    record_id: '9ff91ed2-9d67-4c7e-819b-31df6b4e5cd8',
+    recorded_at: '2026-08-14T08:00:00+05:30',
+    source: 'manual',
+    notes: null,
+  },
+  data: {
+    weight_kilograms: 72.4,
+    height_meters: 1.78,
+    body_fat_percent: null,
+    waist_circumference_centimeters: null,
+  },
+};

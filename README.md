@@ -71,10 +71,11 @@ wellness-profile onboarding, profile-preference editing, and a responsive authen
 shell. Its initial dashboard presents real structured wellness summaries when records exist and an
 honest empty state when they do not. Summary measurements remain in the backend's canonical units;
 the stored measurement-system preference does not yet convert them in the browser. A focused record
-entry foundation now supports Sleep, Hydration, and Subjective wellness check-in creation through
-the authenticated backend, plus a restrained recent-record list for all current record types. The
-remaining seven creation forms, record editing or deletion, full history and filtering, goal-management
-UI, and analytics visualizations remain future web milestones.
+entry foundation now supports Sleep, Hydration, Subjective wellness check-in, Daily Activity,
+Workout, and Body Measurement creation through the authenticated backend, plus a restrained
+recent-record list for all current record types. Meal, Daily Nutrition, Menstrual Bleeding, and
+Menstrual Cycle creation forms remain future work, as do record editing or deletion, full history
+and filtering, goal-management UI, analytics visualizations, and deployment.
 
 The planned MVP capability areas are:
 

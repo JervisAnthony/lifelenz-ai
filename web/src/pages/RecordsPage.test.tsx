@@ -11,10 +11,12 @@ import { AppShell } from '../components/AppShell';
 import { recordTypeLabels } from '../records/recordTypes';
 import { createAuthValue, currentUser } from '../test/authTestUtils';
 import {
+  bodyMeasurementRecord,
   dailyActivityRecord,
   hydrationRecord,
   wellnessProfile,
   wellnessSummary,
+  workoutRecord,
 } from '../test/resourceFixtures';
 import { RecordsPage } from './RecordsPage';
 
@@ -55,7 +57,7 @@ function renderRecords() {
 }
 
 describe('RecordsPage', () => {
-  it('renders the empty state and only the three implemented entry types', async () => {
+  it('renders the empty state and exactly the six implemented entry types', async () => {
     vi.mocked(listWellnessRecords).mockResolvedValue([]);
     renderRecords();
 
@@ -63,7 +65,7 @@ describe('RecordsPage', () => {
       await screen.findByRole('heading', { name: 'No wellness records yet' }),
     ).toBeInTheDocument();
     const selector = screen.getByRole('group', { name: 'Record type' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(3);
+    expect(within(selector).getAllByRole('button')).toHaveLength(6);
     expect(
       within(selector).getByRole('button', { name: /^Sleep/ }),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -73,7 +75,16 @@ describe('RecordsPage', () => {
     expect(
       within(selector).getByRole('button', { name: /^Wellness check-in/ }),
     ).toBeInTheDocument();
-    expect(within(selector).queryByText('Workout')).not.toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Daily activity/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Workout/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(selector).getByRole('button', { name: /^Body measurement/ }),
+    ).toBeInTheDocument();
+    expect(within(selector).queryByText('Meal')).not.toBeInTheDocument();
   });
 
   it('switches among each implemented form', async () => {
@@ -89,6 +100,12 @@ describe('RecordsPage', () => {
       screen.getByRole('button', { name: /^Wellness check-in/ }),
     );
     expect(screen.getByLabelText('Mood score')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Daily activity/ }));
+    expect(screen.getByLabelText('Activity date')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Workout/ }));
+    expect(screen.getByLabelText('Workout type')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Body measurement/ }));
+    expect(screen.getByLabelText('Weight (kilograms)')).toBeInTheDocument();
   });
 
   it('creates a record, refreshes the recent list and summary, then resets the form', async () => {
@@ -147,6 +164,55 @@ describe('RecordsPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each([
+    {
+      selector: /^Daily activity/,
+      field: 'Steps',
+      value: '5100',
+      save: 'Save daily activity record',
+      success: 'Daily activity record saved.',
+      type: 'daily_activity',
+      record: dailyActivityRecord,
+    },
+    {
+      selector: /^Workout/,
+      field: 'Distance (kilometers)',
+      value: '4.2',
+      save: 'Save workout record',
+      success: 'Workout record saved.',
+      type: 'workout',
+      record: workoutRecord,
+    },
+    {
+      selector: /^Body measurement/,
+      field: 'Weight (kilograms)',
+      value: '72.4',
+      save: 'Save body measurement',
+      success: 'Body measurement record saved.',
+      type: 'body_measurement',
+      record: bodyMeasurementRecord,
+    },
+  ])(
+    'saves and resets the $type form only after server success',
+    async ({ selector, field, value, save, success, type, record }) => {
+      vi.mocked(listWellnessRecords).mockResolvedValue([]);
+      vi.mocked(createWellnessRecord).mockResolvedValue(record);
+      renderRecords();
+      const user = userEvent.setup();
+      await screen.findByText('No wellness records yet');
+      await user.click(screen.getByRole('button', { name: selector }));
+      await user.type(screen.getByLabelText(field), value);
+      await user.click(screen.getByRole('button', { name: save }));
+
+      expect(await screen.findByText(success)).toBeInTheDocument();
+      expect(createWellnessRecord).toHaveBeenCalledWith(
+        'access-token',
+        expect.objectContaining({ record_type: type }),
+      );
+      expect(screen.getByLabelText(field)).toHaveValue(null);
+    },
+  );
+
   it('safely presents unsupported-create record types with exhaustive labels', async () => {
     vi.mocked(listWellnessRecords).mockResolvedValue([
       dailyActivityRecord,
@@ -154,10 +220,17 @@ describe('RecordsPage', () => {
     ]);
     renderRecords();
 
-    expect(await screen.findByText('Daily activity')).toBeInTheDocument();
+    const recentRecords = screen.getByRole('region', {
+      name: 'Recent records',
+    });
+    expect(
+      await within(recentRecords).findByText('Daily activity'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('daily_activity')).not.toBeInTheDocument();
     expect(Object.keys(recordTypeLabels)).toHaveLength(10);
-    expect(screen.getByText('350 mL · Water')).toBeInTheDocument();
+    expect(
+      within(recentRecords).getByText('350 mL · Water'),
+    ).toBeInTheDocument();
   });
 
   it('keeps entry available and offers retry when the recent list fails', async () => {
