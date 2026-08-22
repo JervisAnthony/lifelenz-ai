@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { dailyActivityEditValue } from '../recordEditing';
 import {
   buildDailyActivityRecordRequest,
   type DailyActivityFormValue,
@@ -27,9 +28,12 @@ function initialDailyActivityValue(): DailyActivityFormValue {
 
 export function DailyActivityRecordForm({
   isSaving,
+  initialRecord,
   onSubmit,
 }: RecordFormProps) {
-  const [value, setValue] = useState(initialDailyActivityValue);
+  const [value, setValue] = useState(
+    () => dailyActivityEditValue(initialRecord) ?? initialDailyActivityValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
