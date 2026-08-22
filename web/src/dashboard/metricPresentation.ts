@@ -60,3 +60,43 @@ export function formatMeasurement(
   const label = unitLabels[unit];
   return label ? `${formatted} ${label}` : formatted;
 }
+
+export function formatSignedMeasurement(
+  value: number,
+  unit: MeasurementUnit,
+): string {
+  const formatted = formatMeasurement(value, unit);
+  return value > 0 ? `+${formatted}` : formatted;
+}
+
+export function formatPercentageChange(value: number | null): string {
+  if (value === null) return 'Not available';
+  const formatted = value.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  });
+  return `${value > 0 ? '+' : ''}${formatted}%`;
+}
+
+export function formatObservationDate(value: string): string {
+  const observedAt = new Date(value);
+  if (Number.isNaN(observedAt.getTime())) return 'Unknown date';
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(observedAt);
+}
+
+export function rangePosition(
+  value: number,
+  minimum: number,
+  maximum: number,
+): number {
+  if (![value, minimum, maximum].every(Number.isFinite) || maximum <= minimum) {
+    return 50;
+  }
+  return Math.min(
+    100,
+    Math.max(0, ((value - minimum) / (maximum - minimum)) * 100),
+  );
+}

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
@@ -44,7 +44,7 @@ function renderDashboard(overrides = {}) {
 }
 
 describe('DashboardPage', () => {
-  it('shows an honest empty state when no wellness records exist', async () => {
+  it('shows an honest empty state with current record actions', async () => {
     vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
     vi.mocked(getWellnessSummary).mockRejectedValue(
       new ApiError('unavailable', {
@@ -58,11 +58,20 @@ describe('DashboardPage', () => {
     expect(
       await screen.findByText('Your wellness picture will appear here'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/record entry is coming/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Add or review records' }),
+    ).toHaveAttribute('href', '/app/records');
+    expect(screen.getByRole('link', { name: 'Import CSV' })).toHaveAttribute(
+      'href',
+      '/app/records/import',
+    );
+    expect(
+      screen.queryByText(/record entry is coming/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/calories today/i)).not.toBeInTheDocument();
   });
 
-  it('renders profile context and real canonical summary values', async () => {
+  it('renders profile context and descriptive analytics from real canonical summary values', async () => {
     vi.mocked(getProfile).mockResolvedValue(wellnessProfile);
     vi.mocked(getWellnessSummary).mockResolvedValue(wellnessSummary);
     renderDashboard();
@@ -73,13 +82,24 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Sleep')).toBeInTheDocument();
     expect(screen.getByText('Hydration')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', { name: 'Water intake' }),
+      await screen.findByRole('heading', { name: 'At a glance' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('375 mL')).toBeInTheDocument();
-    expect(screen.getByText('Increasing')).toBeInTheDocument();
-    expect(screen.getByText('Based on 2 records.')).toBeInTheDocument();
+    const records = screen.getByText('Records summarized').closest('div');
+    const metrics = screen.getByText('Metrics available').closest('div');
+    const trends = screen.getByText('Metrics with direction').closest('div');
+    expect(within(records as HTMLElement).getByText('2')).toBeInTheDocument();
+    expect(within(metrics as HTMLElement).getByText('1')).toBeInTheDocument();
+    expect(within(trends as HTMLElement).getByText('1')).toBeInTheDocument();
     expect(
-      screen.queryByText(/improving|healthy|unhealthy/i),
+      screen.getByRole('heading', { name: 'Water intake' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('375 mL').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Increasing')).toBeInTheDocument();
+    expect(screen.getByText('+250 mL')).toBeInTheDocument();
+    expect(screen.getByText('+100%')).toBeInTheDocument();
+    expect(screen.getByText(/Based on 2 records/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/improving|healthy|unhealthy|worsening/i),
     ).not.toBeInTheDocument();
   });
 

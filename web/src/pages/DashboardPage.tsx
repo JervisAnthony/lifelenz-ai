@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '../api/client';
 import { getProfile } from '../api/profile';
@@ -7,6 +8,8 @@ import { queryKeys } from '../api/queryKeys';
 import { getWellnessSummary } from '../api/summary';
 import { useAuth } from '../auth/authContext';
 import { Alert } from '../components/Alert';
+import { AnalyticsOverview } from '../dashboard/AnalyticsOverview';
+import '../dashboard/dashboardAnalytics.css';
 import { MetricSummaryCard } from '../dashboard/MetricSummaryCard';
 import { domainLabel } from '../profile/profileOptions';
 
@@ -101,8 +104,8 @@ export function DashboardPage() {
             <h2 id="profile-overview-heading">What you’re tracking</h2>
           </div>
           <p>
-            Preferences shape future presentation; recorded summary values stay
-            in canonical units.
+            Preferences shape presentation; recorded summary values remain in
+            canonical units.
           </p>
         </div>
         {profileQuery.isPending ? (
@@ -159,11 +162,11 @@ export function DashboardPage() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Based on your records</p>
-            <h2 id="summary-heading">Recent wellness summary</h2>
+            <h2 id="summary-heading">Wellness summary</h2>
           </div>
           <p>
-            Directions are mathematical descriptions, not health judgments or
-            recommendations.
+            Visuals describe your recorded values and mathematical direction;
+            they do not judge health or recommend targets.
           </p>
         </div>
         {profileQuery.isError ? (
@@ -180,10 +183,20 @@ export function DashboardPage() {
             <div>
               <h3>Your wellness picture will appear here</h3>
               <p>
-                Once you begin adding wellness records, LifeLenz will summarize
-                your patterns here. Record entry is coming in the next focused
-                milestone.
+                Add records manually or import a supported CSV. LifeLenz will
+                summarize usable metrics from the data you have recorded.
               </p>
+              <div className="dashboard-empty__actions">
+                <Link className="button button--primary" to="/app/records">
+                  Add or review records
+                </Link>
+                <Link
+                  className="button button--secondary"
+                  to="/app/records/import"
+                >
+                  Import CSV
+                </Link>
+              </div>
             </div>
           </div>
         ) : summaryQuery.isError ? (
@@ -201,10 +214,12 @@ export function DashboardPage() {
           </div>
         ) : summary ? (
           <>
+            <AnalyticsOverview summary={summary} />
             <p className="summary-source">
               Based on {summary.generated_from_record_count}{' '}
               {summary.generated_from_record_count === 1 ? 'record' : 'records'}
-              .
+              . Baseline range markers show minimum, maximum, mean, and median;
+              they are not a time-series chart.
             </p>
             <div className="metric-grid">
               {summary.metrics.map((metric) => (
@@ -216,12 +231,21 @@ export function DashboardPage() {
       </section>
 
       <aside className="dashboard__next-step">
-        <p className="eyebrow">Coming next</p>
-        <h2>Build your picture one record at a time.</h2>
+        <p className="eyebrow">Continue your record</p>
+        <h2>Keep your overview grounded in your own data.</h2>
         <p>
-          Wellness record entry and goal management are not available in this
-          release yet.
+          Add or import wellness records as they become available, and manage
+          your own goals separately. LifeLenz does not turn these summaries into
+          medical advice or recommended targets.
         </p>
+        <div className="dashboard__next-step-actions">
+          <Link className="button button--primary" to="/app/records">
+            Open Records
+          </Link>
+          <Link className="button button--secondary" to="/app/goals">
+            Manage goals
+          </Link>
+        </div>
       </aside>
     </div>
   );
