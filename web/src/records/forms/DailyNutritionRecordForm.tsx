@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { dailyNutritionEditValue } from '../recordEditing';
 import {
   buildDailyNutritionRecordRequest,
   type DailyNutritionFormValue,
@@ -32,9 +33,12 @@ function initialDailyNutritionValue(): DailyNutritionFormValue {
 
 export function DailyNutritionRecordForm({
   isSaving,
+  initialRecord,
   onSubmit,
 }: RecordFormProps) {
-  const [value, setValue] = useState(initialDailyNutritionValue);
+  const [value, setValue] = useState(
+    () => dailyNutritionEditValue(initialRecord) ?? initialDailyNutritionValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
