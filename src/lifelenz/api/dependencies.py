@@ -23,6 +23,7 @@ from lifelenz.application import (
     WellnessRecordService,
     WellnessSummaryService,
 )
+from lifelenz.application.authenticated_imports import AuthenticatedWellnessCsvImportService
 from lifelenz.identity import UserAccount
 from lifelenz.repositories import (
     GoalRepository,
@@ -71,6 +72,7 @@ class ApiContainer:
     profile_ownership_service: ProfileOwnershipService
     authenticated_profile_service: AuthenticatedProfileService
     authenticated_wellness_record_service: AuthenticatedWellnessRecordService
+    authenticated_wellness_csv_import_service: AuthenticatedWellnessCsvImportService
     authenticated_goal_service: AuthenticatedGoalService
     authenticated_wellness_summary_service: AuthenticatedWellnessSummaryService
 
@@ -98,6 +100,10 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         profile_service,
         ownership_service,
     )
+    authenticated_record_service = AuthenticatedWellnessRecordService(
+        authenticated_profile_service,
+        record_service,
+    )
     goal_service = GoalService(profile_repository, goal_repository)
     summary_service = WellnessSummaryService(profile_repository, record_repository)
     return ApiContainer(
@@ -116,9 +122,9 @@ def build_api_container(settings: ApiSettings) -> ApiContainer:
         authentication_service=AuthenticationService(account_repository, password_hasher),
         profile_ownership_service=ownership_service,
         authenticated_profile_service=authenticated_profile_service,
-        authenticated_wellness_record_service=AuthenticatedWellnessRecordService(
-            authenticated_profile_service,
-            record_service,
+        authenticated_wellness_record_service=authenticated_record_service,
+        authenticated_wellness_csv_import_service=AuthenticatedWellnessCsvImportService(
+            authenticated_record_service,
         ),
         authenticated_goal_service=AuthenticatedGoalService(
             authenticated_profile_service,

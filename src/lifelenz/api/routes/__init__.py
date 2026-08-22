@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from lifelenz.api.routes.auth import create_auth_router
 from lifelenz.api.routes.goals import create_goals_router
+from lifelenz.api.routes.imports import create_imports_router
 from lifelenz.api.routes.profile import create_profile_router
 from lifelenz.api.routes.records import create_records_router
 from lifelenz.api.routes.summary import create_summary_router
@@ -19,6 +20,7 @@ def create_v1_router() -> APIRouter:
     router.include_router(create_auth_router())
     router.include_router(create_profile_router())
     router.include_router(create_records_router())
+    router.include_router(create_imports_router())
     router.include_router(create_goals_router())
     router.include_router(create_summary_router())
     return router

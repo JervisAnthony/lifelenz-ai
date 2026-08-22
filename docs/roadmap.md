@@ -1,47 +1,45 @@
 # Roadmap
 
-This roadmap describes direction without assigning dates. Except for the existing project
-foundation and this documentation set, the capabilities below are planned or future work;
-they are not implemented in version 0.1.0. Ordering may change as validation and design work
-reveals better boundaries.
+This roadmap describes direction without assigning dates. Except where a capability is explicitly
+marked implemented, items below remain planned or future work. Ordering may change as validation and
+design work reveal better boundaries.
 
 ## Phase 1 — Foundation and domain
 
 Establish a precise, tested vocabulary for wellness data:
 
 - Project foundation — implemented
-- Product and engineering documentation — defined by this documentation set
-- Wellness taxonomy and controlled units
-- Shared domain primitives, validation, and timezone handling
-- Sleep records
-- Activity records
-- Hydration and basic nutrition records
-- Body measurements
-- Mood, energy, and stress records
-- Personal profile and goals
+- Product and engineering documentation — implemented
+- Wellness taxonomy and controlled units — implemented
+- Shared domain primitives, validation, and timezone handling — implemented
+- Sleep records — implemented
+- Activity records — implemented
+- Hydration and basic nutrition records — implemented
+- Body measurements — implemented
+- Mood, energy, and stress records — implemented
+- Personal profile and goals — implemented
 
-The phase is complete when these domain concepts have explicit invariants, typed public
-contracts, representative validation tests, and documentation that reflects implemented
-behavior.
+The phase is complete when these domain concepts have explicit invariants, typed public contracts,
+representative validation tests, and documentation that reflects implemented behavior.
 
 ## Phase 2 — Wellness intelligence
 
 Build the first end-to-end general-wellness workflow:
 
-- In-memory repository and query contracts
-- Personal-baseline analytics
-- Aggregations and trend calculations
-- Deterministic, explainable insight rules
-- Typed wellness summary service
-- Integration tests across records, storage, analytics, insights, and summaries
+- In-memory repository and query contracts — implemented
+- Personal-baseline analytics — implemented
+- Aggregations and trend calculations — implemented
+- Deterministic, explainable insight rules — partially implemented through structured summaries;
+  richer evidence-facing observations remain future work
+- Typed wellness summary service — implemented
+- Integration tests across records, storage, analytics, and summaries — implemented
 
 ### First wellness intelligence milestone completion criteria
 
 The milestone is complete when:
 
 - A supported set of validated records can be stored and retrieved in memory.
-- Baselines and trends have defined minimum-data, time-window, missing-data, and timezone
-  behavior.
+- Baselines and trends have defined minimum-data, time-window, missing-data, and timezone behavior.
 - The same inputs and configuration always produce the same ordered outputs.
 - Every generated observation identifies its evidence and rule and uses non-causal,
   non-diagnostic language.
@@ -54,26 +52,32 @@ The milestone is complete when:
 
 Add deliberate import workflows after domain contracts are stable:
 
-- Versioned CSV schemas for supported record categories
-- Import validation with actionable row-level errors
-- Duplicate detection with documented identity rules
-- Unit and timestamp normalization
-- Support for selected exported wellness-data formats
+- Versioned CSV schema v1 for six stable MVP record categories — implemented
+- Import validation with actionable row-level errors — implemented for CSV v1
+- Duplicate detection with documented semantic identity rules — implemented for CSV v1
+- Unit and timestamp normalization — implemented for CSV v1
+- Authenticated validate/commit API workflow — implemented for CSV v1
+- Browser CSV selection, validation review, and commit workflow — planned
+- Support for selected exported wellness-data formats — future work
 
-This phase does not promise compatibility with every app or device. Each supported export
-format will require a documented schema, fixtures, validation behavior, and provenance rules.
+CSV v1 currently covers Sleep, Daily Activity, Hydration, Daily Nutrition, Body Measurement, and
+Subjective Wellness Check-In. It does not promise compatibility with every app or device. Each future
+export format or CSV schema expansion requires a documented schema, fixtures, validation behavior,
+and provenance rules.
 
 ## Phase 4 — Product interfaces
 
 Expose proven application services through product workflows:
 
-- An API shaped around validated service use cases
-- A dashboard for data review, trends, evidence, and summaries
-- User workflows for entry, import, correction, goals, and export
-- Authentication and durable persistence when interface and deployment needs justify them
-
-Interface frameworks, database technology, hosting, and access-control design will be chosen
-when requirements are concrete. They are not present in the current foundation.
+- Versioned authenticated REST API — implemented
+- Dashboard for structured summaries and recent wellness data — implemented foundation
+- Manual entry for all ten current record types — implemented
+- Full record history and filtering — implemented
+- Record correction and deliberate deletion — implemented
+- Wellness-goal management — implemented
+- CSV import web workflow — planned
+- Analytics visualizations — planned
+- Production deployment and release hardening — planned
 
 ## Phase 5 — Advanced intelligence
 

@@ -77,8 +77,8 @@ def test_factory_calls_are_independent_and_reopening_same_database_succeeds(tmp_
     assert first.state.container is not second.state.container
     assert first.state.container.profile_repository is not second.state.container.profile_repository
     assert isolated.state.settings.database_path != shared.database_path
-    assert len(first.openapi()["paths"]) == 15
-    assert len(second.openapi()["paths"]) == 15
+    assert len(first.openapi()["paths"]) == 16
+    assert len(second.openapi()["paths"]) == 16
 
 
 def test_importing_api_modules_has_no_filesystem_or_application_side_effect(tmp_path: Path) -> None:
@@ -119,6 +119,7 @@ def test_docs_openapi_and_operation_ids_are_configured(tmp_path: Path) -> None:
         "/api/v1/profile",
         "/api/v1/records",
         "/api/v1/records/{record_id}",
+        "/api/v1/imports/csv",
         "/api/v1/goals",
         "/api/v1/goals/{goal_id}",
         "/api/v1/summary",
