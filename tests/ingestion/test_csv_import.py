@@ -14,6 +14,8 @@ from lifelenz.domain import (
     SubjectiveWellnessCheckIn,
 )
 from lifelenz.ingestion import (
+    MAX_CSV_BYTES,
+    MAX_CSV_ROWS,
     CsvImportRecordType,
     WellnessCsvParser,
     wellness_record_identity,
@@ -201,3 +203,149 @@ def test_duplicate_identity_ignores_generated_id_source_and_equivalent_offsets()
 
     assert wellness_record_identity(record) == wellness_record_identity(equivalent)
     assert wellness_record_identity(record) != wellness_record_identity(different_time)
+
+
+@pytest.mark.parametrize(
+    ("record_type", "content", "field"),
+    [
+        (
+            CsvImportRecordType.HYDRATION,
+            "recorded_at,volume_value\n,500\n",
+            "recorded_at",
+        ),
+        (
+            CsvImportRecordType.HYDRATION,
+            "recorded_at,volume_value\nnot-a-time,500\n",
+            "recorded_at",
+        ),
+        (
+            CsvImportRecordType.DAILY_ACTIVITY,
+            "recorded_at,activity_date\n2026-08-20T10:00:00+05:30,20-08-2026\n",
+            "activity_date",
+        ),
+        (
+            CsvImportRecordType.HYDRATION,
+            "recorded_at,volume_value\n2026-08-20T10:00:00+05:30,many\n",
+            "volume_value",
+        ),
+        (
+            CsvImportRecordType.HYDRATION,
+            "recorded_at,volume_value\n2026-08-20T10:00:00+05:30,nan\n",
+            "volume_value",
+        ),
+        (
+            CsvImportRecordType.DAILY_ACTIVITY,
+            "recorded_at,activity_date,steps\n2026-08-20T10:00:00+05:30,2026-08-20,1.5\n",
+            "steps",
+        ),
+        (
+            CsvImportRecordType.HYDRATION,
+            "recorded_at,volume_value,beverage_type\n2026-08-20T10:00:00+05:30,500,unsupported\n",
+            "beverage_type",
+        ),
+        (
+            CsvImportRecordType.BODY_MEASUREMENT,
+            "recorded_at,weight_value,height_unit\n2026-08-20T10:00:00+05:30,70,centimeters\n",
+            "height_unit",
+        ),
+        (
+            CsvImportRecordType.SUBJECTIVE_CHECK_IN,
+            "recorded_at,mood_score,energy_score,stress_score,tags\n"
+            "2026-08-20T10:00:00+05:30,6,7,3,calm;unsupported\n",
+            "tags",
+        ),
+    ],
+)
+def test_csv_v1_reports_specific_value_errors(
+    record_type: CsvImportRecordType,
+    content: str,
+    field: str,
+) -> None:
+    result = WellnessCsvParser().parse(
+        schema_version=1,
+        record_type=record_type,
+        content=content,
+    )
+
+    assert result.valid_rows == 0
+    assert result.invalid_rows == 1
+    assert [(issue.field, issue.code) for issue in result.issues] == [(field, "invalid_value")]
+
+
+def test_csv_v1_reports_file_shape_limits_and_ignores_blank_rows() -> None:
+    parser = WellnessCsvParser()
+    too_large = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content="x" * (MAX_CSV_BYTES + 1),
+    )
+    missing_header = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content="",
+    )
+    duplicate_header = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content="recorded_at,volume_value,volume_value\n2026-08-20T10:00:00+05:30,500,500\n",
+    )
+    extra_column = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content="recorded_at,volume_value\n2026-08-20T10:00:00+05:30,500,unexpected\n",
+    )
+    blank_row = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content="recorded_at,volume_value\n,\n2026-08-20T10:00:00+05:30,500\n",
+    )
+
+    assert too_large.issues[0].code == "file_too_large"
+    assert missing_header.issues[0].code == "missing_header"
+    assert duplicate_header.issues[0].code == "duplicate_header"
+    assert extra_column.issues[0].code == "column_count_mismatch"
+    assert extra_column.total_rows == 1
+    assert blank_row.total_rows == 1
+    assert blank_row.valid_rows == 1
+
+
+def test_csv_v1_reports_row_limit_and_domain_validation_without_partial_success() -> None:
+    header = "recorded_at,volume_value\n"
+    rows = "".join(f"2026-08-20T10:00:00+05:30,{index + 1}\n" for index in range(MAX_CSV_ROWS + 1))
+    too_many = WellnessCsvParser().parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content=header + rows,
+    )
+    invalid_domain_value = WellnessCsvParser().parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.HYDRATION,
+        content=header + "2026-08-20T10:00:00+05:30,-1\n",
+    )
+
+    assert too_many.total_rows == MAX_CSV_ROWS
+    assert too_many.issues[-1].code == "too_many_rows"
+    assert invalid_domain_value.records == ()
+    assert invalid_domain_value.issues[0].code == "domain_validation_error"
+
+
+def test_csv_v1_requires_text_content_and_accepts_empty_tag_segments() -> None:
+    parser = WellnessCsvParser()
+    with pytest.raises(TypeError, match="content must be a string"):
+        parser.parse(
+            schema_version=1,
+            record_type=CsvImportRecordType.HYDRATION,
+            content=None,  # type: ignore[arg-type]
+        )
+
+    result = parser.parse(
+        schema_version=1,
+        record_type=CsvImportRecordType.SUBJECTIVE_CHECK_IN,
+        content=(
+            "recorded_at,mood_score,energy_score,stress_score,tags\n"
+            "2026-08-20T10:00:00+05:30,6,7,3,calm;;focused\n"
+        ),
+    )
+    record = result.records[0].record
+    assert isinstance(record, SubjectiveWellnessCheckIn)
+    assert tuple(tag.value for tag in record.tags) == ("calm", "focused")

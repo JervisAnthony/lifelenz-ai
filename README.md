@@ -50,15 +50,18 @@ hashing, short-lived signed access tokens, durable accounts, and explicit profil
 available. Account registration does not create a wellness profile: authentication establishes
 identity, while a separate `UserId -> ProfileId` mapping establishes authorization context. Hosted
 database deployment, cloud synchronization, goal progress, correlations,
-recommendations, predictions, import workflows, notifications, production monitoring, complete web
-workflows, mobile applications (including Android and iOS), and medical decision support do not yet
-exist. The project does not yet claim production readiness,
+recommendations, predictions, direct wearable integrations, vendor-specific wellness export
+compatibility, notifications, production monitoring, mobile applications (including Android and
+iOS), and medical decision support do not yet exist. The project does not yet claim production readiness,
 regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
 
 LifeLenz-AI now also includes a versioned FastAPI foundation for local development. Alongside public
 system metadata, liveness, and SQLite-readiness endpoints, it supports account registration, login,
 bearer-protected current-user retrieval, explicit primary-profile onboarding and replacement, and
-owned wellness-record creation, listing, and retrieval for all ten current record types. Every
+owned wellness-record creation, listing, retrieval, correction, and deletion for all ten current
+record types. CSV schema v1 also provides authenticated validate/commit ingestion for six stable
+record categories with row-level validation, semantic duplicate detection, canonical-unit
+normalization, and `csv_import` provenance. Every
 wellness-resource route requires bearer authentication and resolves ownership from the account;
 clients cannot choose a profile identifier. Owned wellness-goal management and a deterministic,
 structured wellness-summary endpoint now expose the existing goal, baseline, and trend application
@@ -73,11 +76,14 @@ honest empty state when they do not. Summary measurements remain in the backend'
 the stored measurement-system preference does not yet convert them in the browser. A focused record
 entry foundation now supports authenticated creation for all ten current record types: Sleep,
 Daily Activity, Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness
-check-in, Menstrual Bleeding, and Menstrual Cycle. A restrained recent-record list covers the same
-record types. Authenticated wellness-goal management now supports listing, creation, full-field
-replacement, status changes, and deliberate confirmed deletion through the profile-scoped API.
-Record editing or deletion, full history and filtering, analytics visualizations, end-to-end browser
-coverage, deployment, and release hardening remain future work.
+  check-in, Menstrual Bleeding, and Menstrual Cycle. Recent and full record history cover the same
+  types, with record-type/date filtering, owned-record correction, and deliberate confirmed deletion.
+  A protected CSV workflow supports local file selection, server validation, issue and duplicate
+  review, and explicit import for the six CSV v1 categories. Authenticated wellness-goal management
+  supports listing, creation, full-field
+  replacement, status changes, and deliberate confirmed deletion through the profile-scoped API.
+Analytics visualizations, end-to-end browser coverage, deployment, and release hardening remain
+future work.
 
 The planned MVP capability areas are:
 
@@ -88,9 +94,10 @@ The planned MVP capability areas are:
 - Deterministic, explainable wellness observations
 - Typed wellness summaries
 
-Manual entry and structured-data imports are planned for the MVP. Direct wearable
-connections and broad wellness-platform integrations are future work, not current
-capabilities.
+Manual entry is implemented for all ten record types. Structured CSV schema v1 imports are
+implemented for Sleep, Daily Activity, Hydration, Daily Nutrition, Body Measurement, and Subjective
+Wellness Check-In. Direct wearable connections, vendor-specific formats, and broad
+wellness-platform integrations remain future work.
 
 ## Architecture
 
@@ -168,12 +175,13 @@ persisted in browser storage.
 After authentication, the web application derives onboarding state from the server-owned profile
 identifiers returned by `/api/v1/auth/me`. Users without a profile are guided through the existing
 profile API; configured users can review their preferences and open a summary-backed dashboard. The
-web interface provides Home, Records, Goals, and Profile destinations. Records and goals are persisted by the existing
-authenticated API; successful creation refreshes the server-owned record list and invalidates the
-structured summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent
-with an explicit UTC offset, and canonical units are preserved. Record editing and deletion, advanced
-history and filtering, chart-based visualization, end-to-end browser coverage, and production
-deployment are not yet implemented.
+web interface provides Home, Records, Goals, and Profile destinations. Records supports manual entry,
+recent and full history, record-type/date filtering, correction, confirmed deletion, and a protected
+CSV validate/review/commit subworkflow. Records and goals are persisted by the existing authenticated
+API; successful record mutations and CSV imports invalidate the server-owned record list and structured
+summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent with an
+explicit UTC offset, and canonical units are preserved. Chart-based visualization, end-to-end browser
+coverage, and production deployment are not yet implemented.
 
 ## Continuous integration
 
@@ -231,6 +239,9 @@ PUT /api/v1/profile
 POST /api/v1/records
 GET /api/v1/records
 GET /api/v1/records/{record_id}
+PUT /api/v1/records/{record_id}
+DELETE /api/v1/records/{record_id}
+POST /api/v1/imports/csv
 POST /api/v1/goals
 GET /api/v1/goals
 GET /api/v1/goals/{goal_id}
@@ -248,8 +259,12 @@ Profile onboarding is a separate authenticated step and permits one primary well
 account. Profile requests contain only the existing wellness preferences; profile and ownership IDs
 are server-controlled. The record endpoints use an explicit `record_type` discriminator, generate
 record IDs on the server, preserve deterministic repository ordering, and optionally filter lists by
-record type or a start-inclusive/end-exclusive aware timestamp range. Cross-account record lookups
-return the same not-found response as nonexistent records to avoid revealing resource existence.
+record type or a start-inclusive/end-exclusive aware timestamp range. Corrections preserve the
+server-controlled record ID, concrete type, and original source provenance. Cross-account record
+lookups and mutations return the same not-found response as nonexistent records to avoid revealing
+resource existence. CSV imports derive profile ownership from the authenticated account and support
+schema v1 validation and explicit commit for six categories; duplicate rows are skipped separately
+from validation errors.
 
 Goal routes also derive the primary profile from the authenticated account. They support create,
 list, read, immutable replacement, and deletion through the existing goal application/repository
@@ -264,7 +279,7 @@ Interactive documentation is available at `/docs` and `/redoc` unless documentat
 This is not a complete authentication lifecycle, backend, or public production service. Password
 reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
 standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
-notifications, production monitoring, complete profile/record/goal/summary web workflows, mobile UI
+notifications, production monitoring, analytics charts, real browser end-to-end coverage, mobile UI
 (including Android and iOS), and medical decision support remain out of scope. No production-grade
 security, regulatory compliance, or encrypted SQLite storage claim is made.
 
@@ -277,6 +292,8 @@ More contributor guidance is available in [Development standards](docs/developme
 - [Architecture](docs/architecture.md) describes the intended first-phase design.
 - [Development standards](docs/development.md) defines the contributor workflow and
   engineering expectations.
+- [CSV schema v1](docs/csv-import-v1.md) documents supported categories, exact headers, validation,
+  normalization, and duplicate semantics.
 - [Roadmap](docs/roadmap.md) separates near-term milestones from future work.
 
 ## Wellness and medical disclaimer

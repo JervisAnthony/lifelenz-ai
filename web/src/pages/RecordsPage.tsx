@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '../api/client';
 import {
@@ -164,7 +165,14 @@ export function RecordsPage() {
             <p className="eyebrow">Record entry</p>
             <h2 id="add-record-heading">Add a wellness record</h2>
           </div>
-          <p>Choose one of the record types currently available on the web.</p>
+          <div className="records-import-entry">
+            <p>
+              Choose one of the record types currently available on the web.
+            </p>
+            <Link className="button button--secondary" to="/app/records/import">
+              Import CSV
+            </Link>
+          </div>
         </div>
         <div
           className="record-type-selector"
