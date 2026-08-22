@@ -67,7 +67,9 @@ export function hydrationEditValue(
   };
 }
 
-export function checkInEditValue(record?: WellnessRecord): CheckInFormValue | null {
+export function checkInEditValue(
+  record?: WellnessRecord,
+): CheckInFormValue | null {
   if (record?.record_type !== 'subjective_check_in') return null;
   return {
     recordedAt: awareIsoToLocalDateTime(record.metadata.recorded_at),
@@ -96,7 +98,9 @@ export function dailyActivityEditValue(
   };
 }
 
-export function workoutEditValue(record?: WellnessRecord): WorkoutFormValue | null {
+export function workoutEditValue(
+  record?: WellnessRecord,
+): WorkoutFormValue | null {
   if (record?.record_type !== 'workout') return null;
   return {
     start: awareIsoToLocalDateTime(record.data.period.start),
