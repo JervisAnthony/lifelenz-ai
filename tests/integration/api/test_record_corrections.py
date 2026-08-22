@@ -64,12 +64,17 @@ def create_profile(app: object, headers: dict[str, str]) -> None:
     assert response.status_code == 201
 
 
-def hydration_payload(*, volume: float = 250.0, notes: str = "Synthetic note") -> dict[str, object]:
+def hydration_payload(
+    *,
+    volume: float = 250.0,
+    notes: str = "Synthetic note",
+    source: str = "manual",
+) -> dict[str, object]:
     return {
         "record_type": "hydration",
         "metadata": {
             "recorded_at": "2026-08-22T12:00:00+05:30",
-            "source": "manual",
+            "source": source,
             "notes": notes,
         },
         "data": {
@@ -130,21 +135,27 @@ def test_record_correction_preserves_identity_type_ownership_and_durability(
         "POST",
         "/api/v1/records",
         headers=owner,
-        json=hydration_payload(),
+        json=hydration_payload(source="csv_import"),
     )
     assert created.status_code == 201
     record_id = created.json()["metadata"]["record_id"]
+    assert created.json()["metadata"]["source"] == "csv_import"
 
     corrected = request(
         app,
         "PUT",
         f"/api/v1/records/{record_id}",
         headers=owner,
-        json=hydration_payload(volume=475.0, notes="  Corrected synthetic note  "),
+        json=hydration_payload(
+            volume=475.0,
+            notes="  Corrected synthetic note  ",
+            source="manual",
+        ),
     )
     assert corrected.status_code == 200, corrected.text
     corrected_body = corrected.json()
     assert corrected_body["metadata"]["record_id"] == record_id
+    assert corrected_body["metadata"]["source"] == "csv_import"
     assert corrected_body["metadata"]["notes"] == "Corrected synthetic note"
     assert corrected_body["data"]["volume_milliliters"] == 475.0
     assert request(app, "GET", f"/api/v1/records/{record_id}", headers=owner).json() == corrected_body
