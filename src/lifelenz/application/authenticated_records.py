@@ -33,6 +33,26 @@ class AuthenticatedWellnessRecordService:
         profile = self._profile_service.get_profile(user_id)
         return self._record_service.get_record(profile.profile_id, record_id)
 
+    def update_record(
+        self,
+        user_id: UserId,
+        record_id: RecordId,
+        record: WellnessRecord,
+    ) -> WellnessRecord:
+        """Replace one owned record while preserving its identity and concrete type."""
+        profile = self._profile_service.get_profile(user_id)
+        existing = self._record_service.get_record(profile.profile_id, record_id)
+        if type(existing) is not type(record):
+            raise ApplicationValidationError("record_type cannot be changed during correction")
+        if record.metadata.record_id != record_id:
+            raise ApplicationValidationError("replacement record_id must match the requested record")
+        return self._record_service.save_record(profile.profile_id, record)
+
+    def delete_record(self, user_id: UserId, record_id: RecordId) -> None:
+        """Remove one record owned by the authenticated user's primary profile."""
+        profile = self._profile_service.get_profile(user_id)
+        self._record_service.remove_record(profile.profile_id, record_id)
+
     def list_records(
         self,
         user_id: UserId,
