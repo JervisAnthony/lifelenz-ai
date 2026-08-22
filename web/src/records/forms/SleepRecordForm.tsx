@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { sleepEditValue } from '../recordEditing';
 import {
   buildSleepRecordRequest,
   type SleepFormValue,
@@ -36,8 +37,14 @@ function initialSleepValue(): SleepFormValue {
   };
 }
 
-export function SleepRecordForm({ isSaving, onSubmit }: RecordFormProps) {
-  const [value, setValue] = useState(initialSleepValue);
+export function SleepRecordForm({
+  isSaving,
+  initialRecord,
+  onSubmit,
+}: RecordFormProps) {
+  const [value, setValue] = useState(
+    () => sleepEditValue(initialRecord) ?? initialSleepValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
