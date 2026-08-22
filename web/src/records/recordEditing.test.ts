@@ -82,9 +82,9 @@ describe('record correction preparation', () => {
     expect(hydrationEditValue(hydrationRecord)?.volume).toBe('350');
     expect(mealEditValue(mealRecord)?.mealType).toBe('lunch');
     expect(dailyNutritionEditValue(dailyNutritionRecord)?.mealCount).toBe('');
-    expect(bodyMeasurementEditValue(bodyMeasurementRecord)?.bodyFatPercent).toBe(
-      '',
-    );
+    expect(
+      bodyMeasurementEditValue(bodyMeasurementRecord)?.bodyFatPercent,
+    ).toBe('');
     expect(checkInEditValue(checkInRecord)?.tags).toEqual(['calm', 'focused']);
     expect(menstrualBleedingEditValue(menstrualBleedingRecord)?.flow).toBe(
       'light',
@@ -162,35 +162,40 @@ describe('record correction preparation', () => {
     expect(corrected.data.stages).toEqual(sleepRecord.data.stages);
   });
 
-  it('preserves hidden workout metadata timestamp while allowing period correction', () => {
-    const importedWorkout: WellnessRecord = {
-      ...workoutRecord,
-      metadata: { ...workoutRecord.metadata, source: 'api_import' },
-    };
-    const request: WorkoutRecordCreateRequest = {
-      record_type: 'workout',
-      metadata: {
-        recorded_at: '2026-08-15T09:00:00+05:30',
-        source: 'manual',
-        notes: null,
-      },
-      data: {
-        ...workoutRecord.data,
-        period: {
-          start: '2026-08-15T07:00:00+05:30',
-          end: '2026-08-15T08:00:00+05:30',
+  it(
+    'preserves hidden workout metadata timestamp while allowing period correction',
+    () => {
+      const importedWorkout: WellnessRecord = {
+        ...workoutRecord,
+        metadata: { ...workoutRecord.metadata, source: 'api_import' },
+      };
+      const request: WorkoutRecordCreateRequest = {
+        record_type: 'workout',
+        metadata: {
+          recorded_at: '2026-08-15T09:00:00+05:30',
+          source: 'manual',
+          notes: null,
         },
-      },
-    };
+        data: {
+          ...workoutRecord.data,
+          period: {
+            start: '2026-08-15T07:00:00+05:30',
+            end: '2026-08-15T08:00:00+05:30',
+          },
+        },
+      };
 
-    const corrected = prepareCorrectionRequest(importedWorkout, request);
-    expect(corrected.metadata.source).toBe('api_import');
-    expect(corrected.metadata.recorded_at).toBe(
-      importedWorkout.metadata.recorded_at,
-    );
-    if (corrected.record_type !== 'workout') throw new Error('unexpected type');
-    expect(corrected.data.period.end).toBe('2026-08-15T08:00:00+05:30');
-  });
+      const corrected = prepareCorrectionRequest(importedWorkout, request);
+      expect(corrected.metadata.source).toBe('api_import');
+      expect(corrected.metadata.recorded_at).toBe(
+        importedWorkout.metadata.recorded_at,
+      );
+      if (corrected.record_type !== 'workout') {
+        throw new Error('unexpected type');
+      }
+      expect(corrected.data.period.end).toBe('2026-08-15T08:00:00+05:30');
+    },
+  );
 
   it('rejects changing a record discriminator during correction', () => {
     const request: HydrationRecordCreateRequest = {
