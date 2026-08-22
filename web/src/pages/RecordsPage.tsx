@@ -2,12 +2,21 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '../api/client';
-import { createWellnessRecord, listWellnessRecords } from '../api/records';
+import {
+  createWellnessRecord,
+  listWellnessRecords,
+  type WellnessRecordListFilters,
+} from '../api/records';
 import { queryKeys } from '../api/queryKeys';
-import type { WellnessRecordCreateRequest } from '../api/types';
+import type {
+  WellnessRecordCreateRequest,
+  WellnessRecordType,
+} from '../api/types';
 import { useAuth } from '../auth/authContext';
 import { Alert } from '../components/Alert';
+import { buildRecordHistoryFilters } from '../records/historyFilters';
 import { RecentRecords } from '../records/RecentRecords';
+import { RecordHistory } from '../records/RecordHistory';
 import {
   recordEntryDefinition,
   recordEntryRegistry,
@@ -37,6 +46,15 @@ export function RecordsPage() {
   const [formVersion, setFormVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRecordType, setHistoryRecordType] = useState<
+    WellnessRecordType | 'all'
+  >('all');
+  const [historyStartDate, setHistoryStartDate] = useState('');
+  const [historyEndDate, setHistoryEndDate] = useState('');
+  const [historyFilterError, setHistoryFilterError] = useState<string | null>(null);
+  const [appliedHistoryFilters, setAppliedHistoryFilters] =
+    useState<WellnessRecordListFilters>({});
 
   const recordsQuery = useQuery({
     queryKey: queryKeys.records,
@@ -55,6 +73,34 @@ export function RecordsPage() {
       }
     },
     enabled: Boolean(accessToken),
+    retry: false,
+  });
+
+  const historyQuery = useQuery({
+    queryKey: queryKeys.recordHistory(
+      appliedHistoryFilters.recordType ?? null,
+      appliedHistoryFilters.start ?? null,
+      appliedHistoryFilters.end ?? null,
+    ),
+    queryFn: async ({ signal }) => {
+      try {
+        return await listWellnessRecords(
+          accessToken as string,
+          signal,
+          appliedHistoryFilters,
+        );
+      } catch (caughtError) {
+        handleSessionError(caughtError);
+        if (
+          caughtError instanceof ApiError &&
+          caughtError.code === 'profile_not_configured'
+        ) {
+          void refreshCurrentUser();
+        }
+        throw caughtError;
+      }
+    },
+    enabled: Boolean(accessToken && historyOpen),
     retry: false,
   });
 
@@ -184,6 +230,147 @@ export function RecordsPage() {
           </div>
         ) : (
           <RecentRecords records={recordsQuery.data} />
+        )}
+      </section>
+
+      <section
+        className="records-list-section"
+        aria-labelledby="record-history-heading"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Longitudinal review</p>
+            <h2 id="record-history-heading">Record history</h2>
+          </div>
+          <button
+            type="button"
+            className="button button--secondary"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((open) => !open)}
+          >
+            {historyOpen ? 'Hide history' : 'Browse full history'}
+          </button>
+        </div>
+
+        {historyOpen ? (
+          <>
+            <form
+              className="record-form record-form-card"
+              aria-label="Record history filters"
+              onSubmit={(event) => {
+                event.preventDefault();
+                try {
+                  const filters = buildRecordHistoryFilters({
+                    recordType: historyRecordType,
+                    startDate: historyStartDate,
+                    endDate: historyEndDate,
+                  });
+                  setHistoryFilterError(null);
+                  setAppliedHistoryFilters(filters);
+                } catch (caughtError) {
+                  setHistoryFilterError(
+                    caughtError instanceof Error
+                      ? caughtError.message
+                      : 'Review the history filters and try again.',
+                  );
+                }
+              }}
+            >
+              <div className="record-form-card__heading">
+                <h3>Filter your history</h3>
+                <p>
+                  Filter by record type and, optionally, a complete local date
+                  range. The backend remains the source of the returned history.
+                </p>
+              </div>
+              {historyFilterError ? <Alert>{historyFilterError}</Alert> : null}
+              <div className="record-form__grid">
+                <label className="field">
+                  <span>History record type</span>
+                  <select
+                    value={historyRecordType}
+                    onChange={(event) =>
+                      setHistoryRecordType(
+                        event.target.value as WellnessRecordType | 'all',
+                      )
+                    }
+                  >
+                    <option value="all">All record types</option>
+                    {recordEntryRegistry.map((entry) => (
+                      <option key={entry.type} value={entry.type}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div />
+                <label className="field">
+                  <span>History start date (optional)</span>
+                  <input
+                    type="date"
+                    value={historyStartDate}
+                    onChange={(event) => setHistoryStartDate(event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>History end date (optional)</span>
+                  <input
+                    type="date"
+                    min={historyStartDate || undefined}
+                    value={historyEndDate}
+                    onChange={(event) => setHistoryEndDate(event.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="record-form__actions">
+                <p>
+                  Date filters include both selected calendar days in your local
+                  time zone.
+                </p>
+                <div>
+                  <button type="submit" className="button button--primary">
+                    Apply filters
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    onClick={() => {
+                      setHistoryRecordType('all');
+                      setHistoryStartDate('');
+                      setHistoryEndDate('');
+                      setHistoryFilterError(null);
+                      setAppliedHistoryFilters({});
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {historyQuery.isPending ? (
+              <p className="inline-status" role="status">
+                Loading record history…
+              </p>
+            ) : historyQuery.isError ? (
+              <div className="summary-error">
+                <Alert>We could not load your wellness record history.</Alert>
+                <button
+                  className="button button--secondary"
+                  onClick={() => void historyQuery.refetch()}
+                >
+                  Try history again
+                </button>
+              </div>
+            ) : (
+              <RecordHistory records={historyQuery.data} />
+            )}
+          </>
+        ) : (
+          <p className="inline-status">
+            Open the history browser to review all server-returned records or
+            narrow them by type and date range.
+          </p>
         )}
       </section>
     </div>
