@@ -70,7 +70,9 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
     retry: false,
     onSuccess: async (updated) => {
       setActionError(null);
-      setActionSuccess(`${recordTypeLabels[updated.record_type]} record corrected.`);
+      setActionSuccess(
+        `${recordTypeLabels[updated.record_type]} record corrected.`,
+      );
       setEditingRecordId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.records }),
@@ -108,7 +110,9 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
     retry: false,
     onSuccess: async (record) => {
       setActionError(null);
-      setActionSuccess(`${recordTypeLabels[record.record_type]} record deleted.`);
+      setActionSuccess(
+        `${recordTypeLabels[record.record_type]} record deleted.`,
+      );
       setDeletingRecordId(null);
       if (editingRecordId === record.metadata.record_id) {
         setEditingRecordId(null);
@@ -192,7 +196,9 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
                     setActionError(null);
                     setActionSuccess(null);
                     setDeletingRecordId(null);
-                    setEditingRecordId(isEditing ? null : record.metadata.record_id);
+                    setEditingRecordId(
+                      isEditing ? null : record.metadata.record_id,
+                    );
                   }}
                 >
                   {isEditing ? 'Cancel correction' : 'Correct record'}
@@ -206,7 +212,9 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
                     setActionError(null);
                     setActionSuccess(null);
                     setEditingRecordId(null);
-                    setDeletingRecordId(isDeleting ? null : record.metadata.record_id);
+                    setDeletingRecordId(
+                      isDeleting ? null : record.metadata.record_id,
+                    );
                   }}
                 >
                   {isDeleting ? 'Cancel delete' : 'Delete record'}
