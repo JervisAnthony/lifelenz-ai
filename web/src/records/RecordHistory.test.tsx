@@ -98,71 +98,77 @@ describe('RecordHistory', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('prefills a correction form and sends the replacement through the server', async () => {
-    const original = {
-      ...hydrationRecord(0),
-      metadata: {
-        ...hydrationRecord(0).metadata,
-        source: 'csv_import' as const,
-      },
-    };
-    vi.mocked(updateWellnessRecord).mockImplementation(
-      async (_token, _recordId, request) => ({
-        ...original,
+  it(
+    'prefills a correction form and sends the replacement through the server',
+    async () => {
+      const original = {
+        ...hydrationRecord(0),
         metadata: {
-          ...original.metadata,
-          recorded_at: request.metadata.recorded_at,
-          notes: request.metadata.notes,
+          ...hydrationRecord(0).metadata,
+          source: 'csv_import' as const,
         },
-        data:
-          request.record_type === 'hydration'
-            ? request.data
-            : original.data,
-      }),
-    );
-    renderHistory([original]);
-    const user = userEvent.setup();
+      };
+      vi.mocked(updateWellnessRecord).mockImplementation(
+        async (_token, _recordId, request) => ({
+          ...original,
+          metadata: {
+            ...original.metadata,
+            recorded_at: request.metadata.recorded_at,
+            notes: request.metadata.notes,
+          },
+          data:
+            request.record_type === 'hydration'
+              ? request.data
+              : original.data,
+        }),
+      );
+      renderHistory([original]);
+      const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Correct record' }));
-    expect(screen.getByLabelText('Volume (milliliters)')).toHaveValue(250);
-    await user.clear(screen.getByLabelText('Volume (milliliters)'));
-    await user.type(screen.getByLabelText('Volume (milliliters)'), '475');
-    await user.click(
-      screen.getByRole('button', { name: 'Save hydration record' }),
-    );
+      await user.click(screen.getByRole('button', { name: 'Correct record' }));
+      expect(screen.getByLabelText('Volume (milliliters)')).toHaveValue(250);
+      await user.clear(screen.getByLabelText('Volume (milliliters)'));
+      await user.type(screen.getByLabelText('Volume (milliliters)'), '475');
+      await user.click(
+        screen.getByRole('button', { name: 'Save hydration record' }),
+      );
 
-    expect(updateWellnessRecord).toHaveBeenCalledWith(
-      'access-token',
-      'history-0',
-      expect.objectContaining({
-        record_type: 'hydration',
-        metadata: expect.objectContaining({ source: 'csv_import' }),
-        data: expect.objectContaining({ volume_milliliters: 475 }),
-      }),
-    );
-    expect(
-      await screen.findByText('Hydration record corrected.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('region', { name: 'Correct hydration record' }),
-    ).not.toBeInTheDocument();
-  });
+      expect(updateWellnessRecord).toHaveBeenCalledWith(
+        'access-token',
+        'history-0',
+        expect.objectContaining({
+          record_type: 'hydration',
+          metadata: expect.objectContaining({ source: 'csv_import' }),
+          data: expect.objectContaining({ volume_milliliters: 475 }),
+        }),
+      );
+      expect(
+        await screen.findByText('Hydration record corrected.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', { name: 'Correct hydration record' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
-  it('requires confirmation before deletion and removes nothing on cancel', async () => {
-    renderHistory([hydrationRecord(0)]);
-    const user = userEvent.setup();
+  it(
+    'requires confirmation before deletion and removes nothing on cancel',
+    async () => {
+      renderHistory([hydrationRecord(0)]);
+      const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Delete record' }));
-    expect(
-      screen.getByRole('group', { name: 'Delete hydration record' }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: 'Delete record' }));
+      expect(
+        screen.getByRole('group', { name: 'Delete hydration record' }),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(deleteWellnessRecord).not.toHaveBeenCalled();
-    expect(
-      screen.queryByRole('group', { name: 'Delete hydration record' }),
-    ).not.toBeInTheDocument();
-  });
+      expect(deleteWellnessRecord).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('group', { name: 'Delete hydration record' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('deletes only after server confirmation', async () => {
     vi.mocked(deleteWellnessRecord).mockResolvedValue(undefined);
