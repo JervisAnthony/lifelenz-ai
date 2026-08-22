@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { workoutEditValue } from '../recordEditing';
 import {
   buildWorkoutRecordRequest,
   type WorkoutFormValue,
@@ -43,8 +44,14 @@ function initialWorkoutValue(): WorkoutFormValue {
   };
 }
 
-export function WorkoutRecordForm({ isSaving, onSubmit }: RecordFormProps) {
-  const [value, setValue] = useState(initialWorkoutValue);
+export function WorkoutRecordForm({
+  isSaving,
+  initialRecord,
+  onSubmit,
+}: RecordFormProps) {
+  const [value, setValue] = useState(
+    () => workoutEditValue(initialRecord) ?? initialWorkoutValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

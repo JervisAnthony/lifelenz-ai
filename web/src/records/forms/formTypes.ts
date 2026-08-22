@@ -1,7 +1,11 @@
-import type { WellnessRecordCreateRequest } from '../../api/types';
+import type {
+  WellnessRecord,
+  WellnessRecordCreateRequest,
+} from '../../api/types';
 
 export interface RecordFormProps {
   isSaving: boolean;
+  initialRecord?: WellnessRecord;
   onSubmit(request: WellnessRecordCreateRequest): Promise<void>;
 }
 

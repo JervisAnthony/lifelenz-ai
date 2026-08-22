@@ -1,10 +1,11 @@
 """Bearer-protected primary-profile wellness-record routes."""
 
+from dataclasses import replace
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from lifelenz.api.dependencies import ApiContainer, get_api_container, get_current_user
 from lifelenz.api.resource_mapping import record_from_request, record_response
@@ -30,7 +31,7 @@ from lifelenz.domain import (
     WorkoutRecord,
 )
 from lifelenz.identity import UserAccount
-from lifelenz.repositories import WellnessRecordType
+from lifelenz.repositories import WellnessRecord, WellnessRecordType
 
 ContainerDependency = Annotated[ApiContainer, Depends(get_api_container)]
 CurrentUserDependency = Annotated[UserAccount, Depends(get_current_user)]
@@ -93,9 +94,47 @@ def get_record(
     return record_response(record)
 
 
+def _replacement_record(
+    request: WellnessRecordCreateRequest,
+    record_id: RecordId,
+) -> WellnessRecord:
+    generated = record_from_request(request)
+    metadata = replace(generated.metadata, record_id=record_id)
+    return replace(generated, metadata=metadata)
+
+
+def update_record(
+    record_id: UUID,
+    request: WellnessRecordCreateRequest,
+    account: CurrentUserDependency,
+    container: ContainerDependency,
+) -> WellnessRecordResponse:
+    validated_id = RecordId(str(record_id))
+    replacement = _replacement_record(request, validated_id)
+    saved = container.authenticated_wellness_record_service.update_record(
+        account.user_id,
+        validated_id,
+        replacement,
+    )
+    return record_response(saved)
+
+
+def delete_record(
+    record_id: UUID,
+    account: CurrentUserDependency,
+    container: ContainerDependency,
+) -> Response:
+    container.authenticated_wellness_record_service.delete_record(
+        account.user_id,
+        RecordId(str(record_id)),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 def create_records_router() -> APIRouter:
     router = APIRouter(prefix="/records", tags=["records"])
     common_errors = {
+        400: {"model": ApiErrorResponse},
         401: {"model": ApiErrorResponse},
         404: {"model": ApiErrorResponse},
         422: {"model": ApiErrorResponse},
@@ -127,5 +166,24 @@ def create_records_router() -> APIRouter:
         responses=common_errors,
         operation_id="records_get",
         summary="Get wellness record",
+    )
+    router.add_api_route(
+        "/{record_id}",
+        update_record,
+        methods=["PUT"],
+        response_model=WellnessRecordResponse,
+        responses=common_errors,
+        operation_id="records_update",
+        summary="Correct wellness record",
+    )
+    router.add_api_route(
+        "/{record_id}",
+        delete_record,
+        methods=["DELETE"],
+        status_code=status.HTTP_204_NO_CONTENT,
+        response_model=None,
+        responses=common_errors,
+        operation_id="records_delete",
+        summary="Delete wellness record",
     )
     return router
