@@ -1,0 +1,64 @@
+.record-history .record-history__item {
+  display: grid;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.record-history__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.record-history__summary time {
+  flex: 0 0 auto;
+}
+
+.record-history__actions,
+.record-history__confirmation > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.record-history__actions {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.record-history__correction {
+  box-shadow: none;
+}
+
+.record-history__correction .record-form-card__heading h4 {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.record-history__confirmation {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  padding: var(--space-4);
+}
+
+.record-history__confirmation > p {
+  max-width: 48rem;
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+}
+
+@media (max-width: 42rem) {
+  .record-history__summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .record-history__actions .button,
+  .record-history__confirmation .button {
+    flex: 1 1 12rem;
+  }
+}

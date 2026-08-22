@@ -1,4 +1,5 @@
 import {
+  awareIsoToLocalDateTime,
   currentLocalDateTime,
   elapsedMinutes,
   localDateTimeToAwareIso,
@@ -14,6 +15,20 @@ describe('record datetime helpers', () => {
   it('supports a negative offset without relying on the CI timezone', () => {
     expect(localDateTimeToAwareIso('2026-01-02T06:07:08', 480)).toBe(
       '2026-01-02T06:07:08-08:00',
+    );
+  });
+
+  it('converts an aware instant into a datetime-local value without losing the instant', () => {
+    const local = awareIsoToLocalDateTime('2026-08-14T21:05:00+05:30', -330);
+    expect(local).toBe('2026-08-14T21:05');
+    expect(localDateTimeToAwareIso(local, -330)).toBe(
+      '2026-08-14T21:05:00+05:30',
+    );
+  });
+
+  it('rejects a naive timestamp when preparing a record for correction', () => {
+    expect(() => awareIsoToLocalDateTime('2026-08-14T21:05:00')).toThrow(
+      'timezone-aware',
     );
   });
 

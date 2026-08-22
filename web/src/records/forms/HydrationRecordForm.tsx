@@ -8,6 +8,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { hydrationEditValue } from '../recordEditing';
 import {
   buildHydrationRecordRequest,
   type HydrationFormValue,
@@ -39,8 +40,14 @@ function initialHydrationValue(): HydrationFormValue {
   };
 }
 
-export function HydrationRecordForm({ isSaving, onSubmit }: RecordFormProps) {
-  const [value, setValue] = useState(initialHydrationValue);
+export function HydrationRecordForm({
+  isSaving,
+  initialRecord,
+  onSubmit,
+}: RecordFormProps) {
+  const [value, setValue] = useState(
+    () => hydrationEditValue(initialRecord) ?? initialHydrationValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

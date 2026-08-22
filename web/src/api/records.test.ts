@@ -1,8 +1,10 @@
 import { apiClient } from './client';
 import {
   createWellnessRecord,
+  deleteWellnessRecord,
   getWellnessRecord,
   listWellnessRecords,
+  updateWellnessRecord,
 } from './records';
 import type { HydrationRecordCreateRequest } from './types';
 
@@ -87,6 +89,33 @@ describe('records API', () => {
       method: 'GET',
       token: 'token',
       signal: undefined,
+    });
+  });
+
+  it('replaces an encoded record ID with the exact correction body', async () => {
+    const signal = new AbortController().signal;
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({});
+
+    await updateWellnessRecord('token', 'record/id', request, signal);
+
+    expect(spy).toHaveBeenCalledWith('/api/v1/records/record%2Fid', {
+      method: 'PUT',
+      token: 'token',
+      body: request,
+      signal,
+    });
+  });
+
+  it('deletes an encoded record ID without sending a body', async () => {
+    const signal = new AbortController().signal;
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue(undefined);
+
+    await deleteWellnessRecord('token', 'record/id', signal);
+
+    expect(spy).toHaveBeenCalledWith('/api/v1/records/record%2Fid', {
+      method: 'DELETE',
+      token: 'token',
+      signal,
     });
   });
 

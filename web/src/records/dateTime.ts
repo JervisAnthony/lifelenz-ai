@@ -1,5 +1,6 @@
 const DATE_TIME_LOCAL_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+const AWARE_DATE_TIME_PATTERN = /(?:Z|[+-]\d{2}:\d{2})$/i;
 
 function parsedLocalDateTime(value: string): Date {
   const match = DATE_TIME_LOCAL_PATTERN.exec(value);
@@ -43,6 +44,25 @@ export function localDateTimeToAwareIso(
   const minutes = String(absoluteOffset % 60).padStart(2, '0');
   const normalized = value.length === 16 ? `${value}:00` : value;
   return `${normalized}${sign}${hours}:${minutes}`;
+}
+
+export function awareIsoToLocalDateTime(
+  value: string,
+  offsetMinutes?: number,
+): string {
+  if (!AWARE_DATE_TIME_PATTERN.test(value)) {
+    throw new Error('Expected a timezone-aware record timestamp.');
+  }
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) {
+    throw new Error('Expected a valid timezone-aware record timestamp.');
+  }
+  const browserOffset = offsetMinutes ?? instant.getTimezoneOffset();
+  if (!Number.isInteger(browserOffset) || Math.abs(browserOffset) > 14 * 60) {
+    throw new Error('The local time zone offset is unavailable.');
+  }
+  const localInstant = new Date(instant.getTime() - browserOffset * 60_000);
+  return localInstant.toISOString().slice(0, 16);
 }
 
 export function currentLocalDateTime(date = new Date()): string {

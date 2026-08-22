@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { menstrualCycleEditValue } from '../recordEditing';
 import {
   buildMenstrualCycleRecordRequest,
   type MenstrualCycleFormValue,
@@ -24,9 +25,12 @@ function initialCycleValue(): MenstrualCycleFormValue {
 
 export function MenstrualCycleRecordForm({
   isSaving,
+  initialRecord,
   onSubmit,
 }: RecordFormProps) {
-  const [value, setValue] = useState(initialCycleValue);
+  const [value, setValue] = useState(
+    () => menstrualCycleEditValue(initialRecord) ?? initialCycleValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

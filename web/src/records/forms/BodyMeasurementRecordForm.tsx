@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { bodyMeasurementEditValue } from '../recordEditing';
 import {
   buildBodyMeasurementRecordRequest,
   type BodyMeasurementFormValue,
@@ -25,9 +26,13 @@ function initialBodyMeasurementValue(): BodyMeasurementFormValue {
 
 export function BodyMeasurementRecordForm({
   isSaving,
+  initialRecord,
   onSubmit,
 }: RecordFormProps) {
-  const [value, setValue] = useState(initialBodyMeasurementValue);
+  const [value, setValue] = useState(
+    () =>
+      bodyMeasurementEditValue(initialRecord) ?? initialBodyMeasurementValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

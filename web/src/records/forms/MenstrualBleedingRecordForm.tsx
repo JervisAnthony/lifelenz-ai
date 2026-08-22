@@ -10,6 +10,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { menstrualBleedingEditValue } from '../recordEditing';
 import {
   buildMenstrualBleedingRecordRequest,
   type MenstrualBleedingFormValue,
@@ -62,9 +63,12 @@ function initialBleedingValue(): MenstrualBleedingFormValue {
 
 export function MenstrualBleedingRecordForm({
   isSaving,
+  initialRecord,
   onSubmit,
 }: RecordFormProps) {
-  const [value, setValue] = useState(initialBleedingValue);
+  const [value, setValue] = useState(
+    () => menstrualBleedingEditValue(initialRecord) ?? initialBleedingValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   function toggleSymptom(symptom: CycleSymptom) {
