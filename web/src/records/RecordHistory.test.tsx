@@ -22,7 +22,11 @@ function hydrationRecord(index: number): WellnessRecord {
 
 describe('RecordHistory', () => {
   it('shows every returned record newest first', () => {
-    render(<RecordHistory records={[hydrationRecord(0), hydrationRecord(1), hydrationRecord(2)]} />);
+    render(
+      <RecordHistory
+        records={[hydrationRecord(0), hydrationRecord(1), hydrationRecord(2)]}
+      />,
+    );
 
     expect(screen.getByRole('status')).toHaveTextContent('3 records found');
     const items = screen.getAllByRole('listitem');
@@ -51,7 +55,11 @@ describe('RecordHistory', () => {
     };
 
     render(<RecordHistory records={[record]} />);
-    expect(screen.getByText('Menstrual bleeding observation')).toBeInTheDocument();
-    expect(screen.queryByText(/heavy|synthetic private note/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Menstrual bleeding observation'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/heavy|synthetic private note/i),
+    ).not.toBeInTheDocument();
   });
 });

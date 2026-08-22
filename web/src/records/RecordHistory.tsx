@@ -6,7 +6,10 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
     return (
       <div className="records-empty">
         <h3>No records match these filters</h3>
-        <p>Adjust the record type or date range to review another part of your history.</p>
+        <p>
+          Adjust the record type or date range to review another part of your
+          history.
+        </p>
       </div>
     );
   }
@@ -15,9 +18,13 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
   return (
     <>
       <p className="summary-source" role="status">
-        {records.length.toLocaleString()} {records.length === 1 ? 'record' : 'records'} found
+        {records.length.toLocaleString()}{' '}
+        {records.length === 1 ? 'record' : 'records'} found
       </p>
-      <ol className="recent-records" aria-label="Filtered wellness record history">
+      <ol
+        className="recent-records"
+        aria-label="Filtered wellness record history"
+      >
         {newestFirst.map((record) => {
           const presentation = presentRecord(record);
           return (

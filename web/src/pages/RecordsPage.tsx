@@ -52,7 +52,9 @@ export function RecordsPage() {
   >('all');
   const [historyStartDate, setHistoryStartDate] = useState('');
   const [historyEndDate, setHistoryEndDate] = useState('');
-  const [historyFilterError, setHistoryFilterError] = useState<string | null>(null);
+  const [historyFilterError, setHistoryFilterError] = useState<string | null>(
+    null,
+  );
   const [appliedHistoryFilters, setAppliedHistoryFilters] =
     useState<WellnessRecordListFilters>({});
 
@@ -309,7 +311,9 @@ export function RecordsPage() {
                   <input
                     type="date"
                     value={historyStartDate}
-                    onChange={(event) => setHistoryStartDate(event.target.value)}
+                    onChange={(event) =>
+                      setHistoryStartDate(event.target.value)
+                    }
                   />
                 </label>
                 <label className="field">
@@ -318,7 +322,9 @@ export function RecordsPage() {
                     type="date"
                     min={historyStartDate || undefined}
                     value={historyEndDate}
-                    onChange={(event) => setHistoryEndDate(event.target.value)}
+                    onChange={(event) =>
+                      setHistoryEndDate(event.target.value)
+                    }
                   />
                 </label>
               </div>

@@ -39,7 +39,9 @@ export function buildRecordHistoryFilters(input: {
   const hasStart = input.startDate.trim().length > 0;
   const hasEnd = input.endDate.trim().length > 0;
   if (hasStart !== hasEnd) {
-    throw new Error('Choose both a start date and an end date, or leave both blank.');
+    throw new Error(
+      'Choose both a start date and an end date, or leave both blank.',
+    );
   }
   if (!hasStart || !hasEnd) {
     return filters;
@@ -54,6 +56,8 @@ export function buildRecordHistoryFilters(input: {
   const endExclusive = new Date(endDate);
   endExclusive.setDate(endExclusive.getDate() + 1);
   filters.start = localDateTimeToAwareIso(`${localDateValue(startDate)}T00:00`);
-  filters.end = localDateTimeToAwareIso(`${localDateValue(endExclusive)}T00:00`);
+  filters.end = localDateTimeToAwareIso(
+    `${localDateValue(endExclusive)}T00:00`,
+  );
   return filters;
 }
