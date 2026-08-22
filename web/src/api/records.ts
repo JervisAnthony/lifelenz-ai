@@ -66,3 +66,35 @@ export function getWellnessRecord(
     { method: 'GET', token, signal },
   );
 }
+
+export function updateWellnessRecord(
+  token: string,
+  recordId: string,
+  request: WellnessRecordCreateRequest,
+  signal?: AbortSignal,
+): Promise<WellnessRecord> {
+  return apiClient.request<WellnessRecord>(
+    `${RECORDS_PATH}/${encodeURIComponent(recordId)}`,
+    {
+      method: 'PUT',
+      token,
+      body: request,
+      signal,
+    },
+  );
+}
+
+export function deleteWellnessRecord(
+  token: string,
+  recordId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  return apiClient.request<void>(
+    `${RECORDS_PATH}/${encodeURIComponent(recordId)}`,
+    {
+      method: 'DELETE',
+      token,
+      signal,
+    },
+  );
+}
