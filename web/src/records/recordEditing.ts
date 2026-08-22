@@ -188,6 +188,10 @@ export function prepareCorrectionRequest(
   const metadata = {
     ...request.metadata,
     source: original.metadata.source,
+    recorded_at:
+      original.record_type === 'sleep' || original.record_type === 'workout'
+        ? original.metadata.recorded_at
+        : request.metadata.recorded_at,
   };
 
   if (original.record_type === 'sleep' && request.record_type === 'sleep') {
