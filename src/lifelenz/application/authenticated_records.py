@@ -47,7 +47,9 @@ class AuthenticatedWellnessRecordService:
         if type(existing) is not type(record):
             raise ApplicationValidationError("record_type cannot be changed during correction")
         if record.metadata.record_id != record_id:
-            raise ApplicationValidationError("replacement record_id must match the requested record")
+            raise ApplicationValidationError(
+                "replacement record_id must match the requested record"
+            )
         corrected_metadata = replace(record.metadata, source=existing.metadata.source)
         corrected_record = replace(record, metadata=corrected_metadata)
         return self._record_service.save_record(profile.profile_id, corrected_record)
