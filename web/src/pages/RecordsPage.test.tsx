@@ -257,8 +257,8 @@ describe('RecordsPage', () => {
     },
     {
       selector: /^Menstrual cycle/,
-      field: 'Cycle end date (optional)',
-      value: '2026-08-18',
+      field: 'Notes (optional)',
+      value: 'Synthetic cycle note',
       save: 'Save menstrual cycle',
       success: 'Menstrual cycle record saved.',
       type: 'menstrual_cycle',
