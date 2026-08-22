@@ -30,7 +30,8 @@ export function BodyMeasurementRecordForm({
   onSubmit,
 }: RecordFormProps) {
   const [value, setValue] = useState(
-    () => bodyMeasurementEditValue(initialRecord) ?? initialBodyMeasurementValue(),
+    () =>
+      bodyMeasurementEditValue(initialRecord) ?? initialBodyMeasurementValue(),
   );
   const [error, setError] = useState<string | null>(null);
 
