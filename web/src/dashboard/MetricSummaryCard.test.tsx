@@ -21,7 +21,9 @@ describe('MetricSummaryCard', () => {
     expect(
       screen.getByText('Population standard deviation'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Direction across observations')).toBeInTheDocument();
+    expect(
+      screen.getByText('Direction across observations'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Increasing')).toBeInTheDocument();
     expect(screen.getByText('+250 mL')).toBeInTheDocument();
     expect(screen.getByText('+100%')).toBeInTheDocument();
