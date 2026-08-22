@@ -1,7 +1,20 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
+import {
+  deleteWellnessRecord,
+  updateWellnessRecord,
+} from '../api/records';
 import type { WellnessRecord } from '../api/types';
+import { AuthContext } from '../auth/authContext';
+import { createAuthValue, currentUser } from '../test/authTestUtils';
 import { RecordHistory } from './RecordHistory';
+
+vi.mock('../api/records', () => ({
+  deleteWellnessRecord: vi.fn(),
+  updateWellnessRecord: vi.fn(),
+}));
 
 function hydrationRecord(index: number): WellnessRecord {
   return {
@@ -20,13 +33,35 @@ function hydrationRecord(index: number): WellnessRecord {
   };
 }
 
+function renderHistory(records: WellnessRecord[]) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  const auth = createAuthValue({
+    status: 'authenticated',
+    user: { ...currentUser, profile_ids: ['synthetic-profile'] },
+    accessToken: 'access-token',
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={auth}>
+        <RecordHistory records={records} />
+      </AuthContext.Provider>
+    </QueryClientProvider>,
+  );
+  return { queryClient };
+}
+
 describe('RecordHistory', () => {
   it('shows every returned record newest first', () => {
-    render(
-      <RecordHistory
-        records={[hydrationRecord(0), hydrationRecord(1), hydrationRecord(2)]}
-      />,
-    );
+    renderHistory([
+      hydrationRecord(0),
+      hydrationRecord(1),
+      hydrationRecord(2),
+    ]);
 
     expect(screen.getByRole('status')).toHaveTextContent('3 records found');
     const items = screen.getAllByRole('listitem');
@@ -36,7 +71,7 @@ describe('RecordHistory', () => {
   });
 
   it('renders an honest filtered empty state', () => {
-    render(<RecordHistory records={[]} />);
+    renderHistory([]);
     expect(
       screen.getByRole('heading', { name: 'No records match these filters' }),
     ).toBeInTheDocument();
@@ -54,12 +89,100 @@ describe('RecordHistory', () => {
       data: { flow: 'heavy', symptoms: [] },
     };
 
-    render(<RecordHistory records={[record]} />);
+    renderHistory([record]);
     expect(
       screen.getByText('Menstrual bleeding observation'),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/heavy|synthetic private note/i),
     ).not.toBeInTheDocument();
+  });
+
+  it('prefills a correction form and sends the replacement through the server', async () => {
+    const original = {
+      ...hydrationRecord(0),
+      metadata: {
+        ...hydrationRecord(0).metadata,
+        source: 'csv_import' as const,
+      },
+    };
+    vi.mocked(updateWellnessRecord).mockImplementation(
+      async (_token, _recordId, request) => ({
+        ...original,
+        metadata: {
+          ...original.metadata,
+          recorded_at: request.metadata.recorded_at,
+          notes: request.metadata.notes,
+        },
+        data:
+          request.record_type === 'hydration'
+            ? request.data
+            : original.data,
+      }),
+    );
+    renderHistory([original]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Correct record' }));
+    expect(screen.getByLabelText('Volume (milliliters)')).toHaveValue(250);
+    await user.clear(screen.getByLabelText('Volume (milliliters)'));
+    await user.type(screen.getByLabelText('Volume (milliliters)'), '475');
+    await user.click(
+      screen.getByRole('button', { name: 'Save hydration record' }),
+    );
+
+    expect(updateWellnessRecord).toHaveBeenCalledWith(
+      'access-token',
+      'history-0',
+      expect.objectContaining({
+        record_type: 'hydration',
+        metadata: expect.objectContaining({ source: 'csv_import' }),
+        data: expect.objectContaining({ volume_milliliters: 475 }),
+      }),
+    );
+    expect(
+      await screen.findByText('Hydration record corrected.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Correct hydration record' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('requires confirmation before deletion and removes nothing on cancel', async () => {
+    renderHistory([hydrationRecord(0)]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Delete record' }));
+    expect(
+      screen.getByRole('group', { name: 'Delete hydration record' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(deleteWellnessRecord).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('group', { name: 'Delete hydration record' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('deletes only after server confirmation', async () => {
+    vi.mocked(deleteWellnessRecord).mockResolvedValue(undefined);
+    renderHistory([hydrationRecord(0)]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Delete record' }));
+    const confirmation = screen.getByRole('group', {
+      name: 'Delete hydration record',
+    });
+    await user.click(
+      within(confirmation).getByRole('button', { name: 'Delete record' }),
+    );
+
+    expect(deleteWellnessRecord).toHaveBeenCalledWith(
+      'access-token',
+      'history-0',
+    );
+    expect(
+      await screen.findByText('Hydration record deleted.'),
+    ).toBeInTheDocument();
   });
 });
