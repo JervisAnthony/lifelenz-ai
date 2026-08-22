@@ -17,6 +17,7 @@ import { prepareCorrectionRequest } from './recordEditing';
 import { recordEntryDefinition } from './recordEntryRegistry';
 import { presentRecord } from './recordPresentation';
 import { recordTypeLabels } from './recordTypes';
+import './RecordHistory.css';
 
 function correctionErrorMessage(error: unknown, action: 'update' | 'delete') {
   if (error instanceof ApiError) {
