@@ -50,7 +50,9 @@ describe('MetricSummaryCard', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('No recent direction is available from this summary yet.'),
+      screen.getByText(
+        'No recent direction is available from this summary yet.',
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Absolute change')).not.toBeInTheDocument();
   });

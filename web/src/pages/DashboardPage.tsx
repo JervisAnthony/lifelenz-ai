@@ -190,7 +190,10 @@ export function DashboardPage() {
                 <Link className="button button--primary" to="/app/records">
                   Add or review records
                 </Link>
-                <Link className="button button--secondary" to="/app/records/import">
+                <Link
+                  className="button button--secondary"
+                  to="/app/records/import"
+                >
                   Import CSV
                 </Link>
               </div>

@@ -36,7 +36,8 @@ export function MetricSummaryCard({
       <div className="metric-card__heading">
         <h3>{metricLabels[summary.metric]}</h3>
         <span>
-          {baseline.sample_count} {baseline.sample_count === 1 ? 'sample' : 'samples'}
+          {baseline.sample_count}{' '}
+          {baseline.sample_count === 1 ? 'sample' : 'samples'}
         </span>
       </div>
 
@@ -50,7 +51,11 @@ export function MetricSummaryCard({
           <span>Observed range</span>
           <span>Mean + median markers</span>
         </div>
-        <div className="metric-card__range-plot" role="img" aria-label={rangeLabel}>
+        <div
+          className="metric-card__range-plot"
+          role="img"
+          aria-label={rangeLabel}
+        >
           <div className="metric-card__range-track" aria-hidden="true">
             <span
               className="metric-card__range-marker metric-card__range-marker--mean"
@@ -67,8 +72,14 @@ export function MetricSummaryCard({
           </div>
         </div>
         <div className="metric-card__legend" aria-hidden="true">
-          <span><i className="metric-card__legend-dot metric-card__legend-dot--mean" />Mean</span>
-          <span><i className="metric-card__legend-dot metric-card__legend-dot--median" />Median</span>
+          <span>
+            <i className="metric-card__legend-dot metric-card__legend-dot--mean" />
+            Mean
+          </span>
+          <span>
+            <i className="metric-card__legend-dot metric-card__legend-dot--median" />
+            Median
+          </span>
         </div>
       </div>
 
@@ -94,7 +105,10 @@ export function MetricSummaryCard({
       </dl>
 
       {trend ? (
-        <section className="metric-card__trend" aria-label="Mathematical trend details">
+        <section
+          className="metric-card__trend"
+          aria-label="Mathematical trend details"
+        >
           <div className="metric-card__trend-heading">
             <span>Recent direction</span>
             <strong>{trendLabels[trend.direction]}</strong>

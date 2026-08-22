@@ -71,7 +71,9 @@ export function formatSignedMeasurement(
 
 export function formatPercentageChange(value: number | null): string {
   if (value === null) return 'Not available';
-  const formatted = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const formatted = value.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  });
   return `${value > 0 ? '+' : ''}${formatted}%`;
 }
 
@@ -85,9 +87,16 @@ export function formatObservationDate(value: string): string {
   }).format(observedAt);
 }
 
-export function rangePosition(value: number, minimum: number, maximum: number): number {
+export function rangePosition(
+  value: number,
+  minimum: number,
+  maximum: number,
+): number {
   if (![value, minimum, maximum].every(Number.isFinite) || maximum <= minimum) {
     return 50;
   }
-  return Math.min(100, Math.max(0, ((value - minimum) / (maximum - minimum)) * 100));
+  return Math.min(
+    100,
+    Math.max(0, ((value - minimum) / (maximum - minimum)) * 100),
+  );
 }

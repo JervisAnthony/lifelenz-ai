@@ -65,7 +65,9 @@ describe('DashboardPage', () => {
       'href',
       '/app/records/import',
     );
-    expect(screen.queryByText(/record entry is coming/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/record entry is coming/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/calories today/i)).not.toBeInTheDocument();
   });
 
