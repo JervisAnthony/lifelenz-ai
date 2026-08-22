@@ -2,15 +2,9 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '../api/client';
-import {
-  deleteWellnessRecord,
-  updateWellnessRecord,
-} from '../api/records';
+import { deleteWellnessRecord, updateWellnessRecord } from '../api/records';
 import { queryKeys } from '../api/queryKeys';
-import type {
-  WellnessRecord,
-  WellnessRecordCreateRequest,
-} from '../api/types';
+import type { WellnessRecord, WellnessRecordCreateRequest } from '../api/types';
 import { useAuth } from '../auth/authContext';
 import { Alert } from '../components/Alert';
 import { prepareCorrectionRequest } from './recordEditing';
@@ -175,7 +169,10 @@ export function RecordHistory({ records }: { records: WellnessRecord[] }) {
           const busy = updateMutation.isPending || deleteMutation.isPending;
           const EditForm = definition?.Form;
           return (
-            <li key={record.metadata.record_id} className="record-history__item">
+            <li
+              key={record.metadata.record_id}
+              className="record-history__item"
+            >
               <div className="record-history__summary">
                 <div>
                   <h3>{presentation.label}</h3>

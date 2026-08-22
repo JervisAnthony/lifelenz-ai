@@ -14,7 +14,7 @@
     "test:run": "vitest run",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
-    "format:check": "prettier --write src/records/recordEditing.test.ts src/records/recordEditing.ts src/records/RecordHistory.test.tsx src/records/RecordHistory.tsx && git diff -- src/records/recordEditing.test.ts src/records/recordEditing.ts src/records/RecordHistory.test.tsx src/records/RecordHistory.tsx && exit 1",
+    "format:check": "prettier --check .",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

@@ -1,7 +1,4 @@
-import type {
-  WellnessRecord,
-  WellnessRecordCreateRequest,
-} from '../api/types';
+import type { WellnessRecord, WellnessRecordCreateRequest } from '../api/types';
 import { awareIsoToLocalDateTime } from './dateTime';
 import type {
   BodyMeasurementFormValue,

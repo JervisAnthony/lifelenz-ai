@@ -93,6 +93,9 @@ describe('record correction preparation', () => {
   });
 
   it('preserves explicit zero while keeping nullable values empty', () => {
+    if (hydrationRecord.record_type !== 'hydration') {
+      throw new Error('unexpected fixture type');
+    }
     const importedHydration: WellnessRecord = {
       ...hydrationRecord,
       metadata: { ...hydrationRecord.metadata, source: 'csv_import' },
@@ -106,6 +109,9 @@ describe('record correction preparation', () => {
   });
 
   it('preserves source provenance when preparing a normal correction request', () => {
+    if (hydrationRecord.record_type !== 'hydration') {
+      throw new Error('unexpected fixture type');
+    }
     const importedHydration: WellnessRecord = {
       ...hydrationRecord,
       metadata: { ...hydrationRecord.metadata, source: 'csv_import' },
@@ -126,9 +132,7 @@ describe('record correction preparation', () => {
 
     const corrected = prepareCorrectionRequest(importedHydration, request);
     expect(corrected.metadata.source).toBe('csv_import');
-    expect(corrected.metadata.recorded_at).toBe(
-      '2026-08-15T10:30:00+05:30',
-    );
+    expect(corrected.metadata.recorded_at).toBe('2026-08-15T10:30:00+05:30');
   });
 
   it('preserves hidden sleep stages and metadata timestamp', () => {
@@ -162,40 +166,40 @@ describe('record correction preparation', () => {
     expect(corrected.data.stages).toEqual(sleepRecord.data.stages);
   });
 
-  it(
-    'preserves hidden workout metadata timestamp while allowing period correction',
-    () => {
-      const importedWorkout: WellnessRecord = {
-        ...workoutRecord,
-        metadata: { ...workoutRecord.metadata, source: 'api_import' },
-      };
-      const request: WorkoutRecordCreateRequest = {
-        record_type: 'workout',
-        metadata: {
-          recorded_at: '2026-08-15T09:00:00+05:30',
-          source: 'manual',
-          notes: null,
+  it('preserves hidden workout metadata timestamp while allowing period correction', () => {
+    if (workoutRecord.record_type !== 'workout') {
+      throw new Error('unexpected fixture type');
+    }
+    const importedWorkout: WellnessRecord = {
+      ...workoutRecord,
+      metadata: { ...workoutRecord.metadata, source: 'api_import' },
+    };
+    const request: WorkoutRecordCreateRequest = {
+      record_type: 'workout',
+      metadata: {
+        recorded_at: '2026-08-15T09:00:00+05:30',
+        source: 'manual',
+        notes: null,
+      },
+      data: {
+        ...workoutRecord.data,
+        period: {
+          start: '2026-08-15T07:00:00+05:30',
+          end: '2026-08-15T08:00:00+05:30',
         },
-        data: {
-          ...workoutRecord.data,
-          period: {
-            start: '2026-08-15T07:00:00+05:30',
-            end: '2026-08-15T08:00:00+05:30',
-          },
-        },
-      };
+      },
+    };
 
-      const corrected = prepareCorrectionRequest(importedWorkout, request);
-      expect(corrected.metadata.source).toBe('api_import');
-      expect(corrected.metadata.recorded_at).toBe(
-        importedWorkout.metadata.recorded_at,
-      );
-      if (corrected.record_type !== 'workout') {
-        throw new Error('unexpected type');
-      }
-      expect(corrected.data.period.end).toBe('2026-08-15T08:00:00+05:30');
-    },
-  );
+    const corrected = prepareCorrectionRequest(importedWorkout, request);
+    expect(corrected.metadata.source).toBe('api_import');
+    expect(corrected.metadata.recorded_at).toBe(
+      importedWorkout.metadata.recorded_at,
+    );
+    if (corrected.record_type !== 'workout') {
+      throw new Error('unexpected type');
+    }
+    expect(corrected.data.period.end).toBe('2026-08-15T08:00:00+05:30');
+  });
 
   it('rejects changing a record discriminator during correction', () => {
     const request: HydrationRecordCreateRequest = {
