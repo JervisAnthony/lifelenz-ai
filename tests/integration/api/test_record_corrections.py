@@ -158,7 +158,10 @@ def test_record_correction_preserves_identity_type_ownership_and_durability(
     assert corrected_body["metadata"]["source"] == "csv_import"
     assert corrected_body["metadata"]["notes"] == "Corrected synthetic note"
     assert corrected_body["data"]["volume_milliliters"] == 475.0
-    assert request(app, "GET", f"/api/v1/records/{record_id}", headers=owner).json() == corrected_body
+    assert (
+        request(app, "GET", f"/api/v1/records/{record_id}", headers=owner).json()
+        == corrected_body
+    )
 
     type_change = request(
         app,
@@ -171,7 +174,10 @@ def test_record_correction_preserves_identity_type_ownership_and_durability(
         400,
         "application_validation_error",
     )
-    assert request(app, "GET", f"/api/v1/records/{record_id}", headers=owner).json() == corrected_body
+    assert (
+        request(app, "GET", f"/api/v1/records/{record_id}", headers=owner).json()
+        == corrected_body
+    )
 
     cross_update = request(
         app,
@@ -246,14 +252,16 @@ def test_record_correction_preserves_identity_type_ownership_and_durability(
     )
 
 
-def test_record_correction_openapi_is_bearer_protected_and_discriminated(tmp_path: Path) -> None:
+def test_record_correction_openapi_is_bearer_protected_and_discriminated(
+    tmp_path: Path,
+) -> None:
     schema = create_app(settings(tmp_path / "openapi.db")).openapi()
     record_path = schema["paths"]["/api/v1/records/{record_id}"]
     assert record_path["put"]["security"] == [{"BearerAuth": []}]
     assert record_path["delete"]["security"] == [{"BearerAuth": []}]
-    discriminator = record_path["put"]["requestBody"]["content"]["application/json"]["schema"][
-        "discriminator"
-    ]
+    discriminator = record_path["put"]["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["discriminator"]
     assert set(discriminator["mapping"]) == {
         "sleep",
         "daily_activity",
