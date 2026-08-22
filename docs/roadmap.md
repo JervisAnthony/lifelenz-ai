@@ -57,7 +57,7 @@ Add deliberate import workflows after domain contracts are stable:
 - Duplicate detection with documented semantic identity rules — implemented for CSV v1
 - Unit and timestamp normalization — implemented for CSV v1
 - Authenticated validate/commit API workflow — implemented for CSV v1
-- Browser CSV selection, validation review, and commit workflow — planned
+- Browser CSV selection, validation review, and commit workflow — implemented
 - Support for selected exported wellness-data formats — future work
 
 CSV v1 currently covers Sleep, Daily Activity, Hydration, Daily Nutrition, Body Measurement, and
@@ -75,7 +75,7 @@ Expose proven application services through product workflows:
 - Full record history and filtering — implemented
 - Record correction and deliberate deletion — implemented
 - Wellness-goal management — implemented
-- CSV import web workflow — planned
+- CSV import web workflow — implemented
 - Analytics visualizations — planned
 - Production deployment and release hardening — planned
 

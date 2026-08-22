@@ -1328,6 +1328,123 @@ fieldset.profile-form__section {
   padding-top: var(--space-8);
 }
 
+.records-import-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.records-import-entry p {
+  margin: 0;
+}
+
+.import-page .page-intro .text-link {
+  display: inline-block;
+  margin-top: var(--space-4);
+}
+
+.csv-import-workflow {
+  display: grid;
+  gap: var(--space-6);
+  padding-top: var(--space-8);
+}
+
+.csv-file-summary {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+}
+
+.csv-report,
+.csv-import-action,
+.csv-format-help {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  box-shadow: var(--shadow-sm);
+}
+
+.csv-report__counts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.csv-report__counts div {
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  padding: var(--space-4);
+}
+
+.csv-report__counts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.csv-report__counts dd {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+}
+
+.csv-report__details {
+  margin-top: var(--space-6);
+}
+
+.csv-report__details h3,
+.csv-import-action h2 {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+
+.csv-report__details ul {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.csv-report__details li {
+  display: grid;
+  gap: var(--space-1);
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: var(--space-4);
+  overflow-wrap: anywhere;
+}
+
+.csv-report__details span,
+.csv-import-action p,
+.csv-format-help p {
+  color: var(--color-text-secondary);
+}
+
+.csv-import-action p:last-of-type {
+  margin-bottom: var(--space-4);
+}
+
+.csv-format-help summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.csv-format-help div {
+  max-width: 48rem;
+  padding-top: var(--space-4);
+}
+
+.csv-format-help p:last-child {
+  margin-bottom: 0;
+}
+
 .record-type-selector {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1680,6 +1797,10 @@ fieldset.profile-form__section {
   .record-type-selector {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .csv-report__counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 42rem) {
@@ -1799,7 +1920,8 @@ fieldset.profile-form__section {
   }
 
   .record-form__actions,
-  .recent-records li {
+  .recent-records li,
+  .records-import-entry {
     align-items: stretch;
     flex-direction: column;
   }
@@ -1810,5 +1932,9 @@ fieldset.profile-form__section {
 
   .recent-records time {
     flex: auto;
+  }
+
+  .csv-report__counts {
+    grid-template-columns: 1fr 1fr;
   }
 }

@@ -101,6 +101,10 @@ describe('RecordsPage', () => {
     expect(
       within(selector).getByRole('button', { name: /^Menstrual cycle/ }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Import CSV' })).toHaveAttribute(
+      'href',
+      '/app/records/import',
+    );
   });
 
   it('switches among each implemented form', async () => {
