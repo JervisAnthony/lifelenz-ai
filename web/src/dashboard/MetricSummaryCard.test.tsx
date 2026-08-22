@@ -12,11 +12,14 @@ describe('MetricSummaryCard', () => {
       screen.getByRole('heading', { name: 'Water intake' }),
     ).toBeInTheDocument();
     expect(screen.getByText('2 samples')).toBeInTheDocument();
+    expect(screen.getByText('Average')).toBeInTheDocument();
     expect(
       screen.getByRole('img', {
         name: /Observed range 250 mL to 500 mL.*Mean 375 mL.*Median 375 mL/i,
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Population standard deviation')).toBeInTheDocument();
+    expect(screen.getByText('Direction across observations')).toBeInTheDocument();
     expect(screen.getByText('Increasing')).toBeInTheDocument();
     expect(screen.getByText('+250 mL')).toBeInTheDocument();
     expect(screen.getByText('+100%')).toBeInTheDocument();
@@ -51,7 +54,7 @@ describe('MetricSummaryCard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'No recent direction is available from this summary yet.',
+        'No mathematical direction is available from this summary yet.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Absolute change')).not.toBeInTheDocument();

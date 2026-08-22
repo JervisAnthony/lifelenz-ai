@@ -162,7 +162,7 @@ export function DashboardPage() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Based on your records</p>
-            <h2 id="summary-heading">Recent wellness summary</h2>
+            <h2 id="summary-heading">Wellness summary</h2>
           </div>
           <p>
             Visuals describe your recorded values and mathematical direction;

@@ -42,7 +42,7 @@ export function MetricSummaryCard({
       </div>
 
       <p className="metric-card__average">
-        <span>Recent average</span>
+        <span>Average</span>
         <strong>{formatMeasurement(baseline.mean, unit)}</strong>
       </p>
 
@@ -97,7 +97,7 @@ export function MetricSummaryCard({
           <dd>{formatMeasurement(baseline.maximum, unit)}</dd>
         </div>
         <div>
-          <dt>Spread</dt>
+          <dt>Population standard deviation</dt>
           <dd>
             {formatMeasurement(baseline.population_standard_deviation, unit)}
           </dd>
@@ -110,7 +110,7 @@ export function MetricSummaryCard({
           aria-label="Mathematical trend details"
         >
           <div className="metric-card__trend-heading">
-            <span>Recent direction</span>
+            <span>Direction across observations</span>
             <strong>{trendLabels[trend.direction]}</strong>
           </div>
           <p className="metric-card__trend-values">
@@ -135,7 +135,7 @@ export function MetricSummaryCard({
         </section>
       ) : (
         <p className="metric-card__trend-empty">
-          No recent direction is available from this summary yet.
+          No mathematical direction is available from this summary yet.
         </p>
       )}
     </article>
