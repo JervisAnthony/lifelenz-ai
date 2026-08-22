@@ -322,9 +322,7 @@ export function RecordsPage() {
                     type="date"
                     min={historyStartDate || undefined}
                     value={historyEndDate}
-                    onChange={(event) =>
-                      setHistoryEndDate(event.target.value)
-                    }
+                    onChange={(event) => setHistoryEndDate(event.target.value)}
                   />
                 </label>
               </div>
