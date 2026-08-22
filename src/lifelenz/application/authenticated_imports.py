@@ -97,9 +97,7 @@ class AuthenticatedWellnessCsvImportService:
         for entry in parsed.records:
             identity = wellness_record_identity(entry.record)
             if identity in existing_identities:
-                duplicates.append(
-                    CsvImportDuplicate(entry.row_number, "existing_record")
-                )
+                duplicates.append(CsvImportDuplicate(entry.row_number, "existing_record"))
                 continue
             if identity in batch_identities:
                 duplicates.append(CsvImportDuplicate(entry.row_number, "earlier_row"))

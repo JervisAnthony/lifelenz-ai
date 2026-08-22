@@ -387,8 +387,7 @@ _SCHEMAS: dict[CsvImportRecordType, _CsvSchema] = {
     ),
     CsvImportRecordType.HYDRATION: _CsvSchema(
         required_headers=_COMMON | {"volume_value"},
-        optional_headers=_NOTES
-        | {"volume_unit", "beverage_type", "caffeine_milligrams"},
+        optional_headers=_NOTES | {"volume_unit", "beverage_type", "caffeine_milligrams"},
         builder=_build_hydration,
     ),
     CsvImportRecordType.DAILY_NUTRITION: _CsvSchema(

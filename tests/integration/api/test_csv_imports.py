@@ -171,11 +171,7 @@ def test_csv_import_validates_deduplicates_and_commits_without_partial_writes(
     assert repeated_commit.json()["imported_rows"] == 0
     assert len(request(app, "GET", "/api/v1/records", headers=headers).json()) == 1
 
-    invalid = (
-        "recorded_at,volume_value\n"
-        "2026-08-20T12:00:00+05:30,250\n"
-        "2026-08-20T13:00:00,300\n"
-    )
+    invalid = "recorded_at,volume_value\n2026-08-20T12:00:00+05:30,250\n2026-08-20T13:00:00,300\n"
     blocked = request(
         app,
         "POST",

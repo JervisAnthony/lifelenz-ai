@@ -85,30 +85,41 @@ def test_csv_v1_parses_supported_mvp_records(
 
 def test_csv_v1_normalizes_supported_units() -> None:
     parser = WellnessCsvParser()
-    activity = parser.parse(
-        schema_version=1,
-        record_type=CsvImportRecordType.DAILY_ACTIVITY,
-        content=(
-            "recorded_at,activity_date,distance_value,distance_unit\n"
-            "2026-08-20T20:00:00+05:30,2026-08-20,2500,meters\n"
-        ),
-    ).records[0].record
-    hydration = parser.parse(
-        schema_version=1,
-        record_type=CsvImportRecordType.HYDRATION,
-        content=(
-            "recorded_at,volume_value,volume_unit\n"
-            "2026-08-20T10:00:00+05:30,0.75,liters\n"
-        ),
-    ).records[0].record
-    body = parser.parse(
-        schema_version=1,
-        record_type=CsvImportRecordType.BODY_MEASUREMENT,
-        content=(
-            "recorded_at,weight_value,weight_unit,height_value,height_unit\n"
-            "2026-08-20T08:00:00+05:30,72500,grams,175,centimeters\n"
-        ),
-    ).records[0].record
+    activity = (
+        parser.parse(
+            schema_version=1,
+            record_type=CsvImportRecordType.DAILY_ACTIVITY,
+            content=(
+                "recorded_at,activity_date,distance_value,distance_unit\n"
+                "2026-08-20T20:00:00+05:30,2026-08-20,2500,meters\n"
+            ),
+        )
+        .records[0]
+        .record
+    )
+    hydration = (
+        parser.parse(
+            schema_version=1,
+            record_type=CsvImportRecordType.HYDRATION,
+            content=(
+                "recorded_at,volume_value,volume_unit\n2026-08-20T10:00:00+05:30,0.75,liters\n"
+            ),
+        )
+        .records[0]
+        .record
+    )
+    body = (
+        parser.parse(
+            schema_version=1,
+            record_type=CsvImportRecordType.BODY_MEASUREMENT,
+            content=(
+                "recorded_at,weight_value,weight_unit,height_value,height_unit\n"
+                "2026-08-20T08:00:00+05:30,72500,grams,175,centimeters\n"
+            ),
+        )
+        .records[0]
+        .record
+    )
 
     assert isinstance(activity, DailyActivityRecord)
     assert activity.distance_kilometers == 2.5
@@ -154,21 +165,23 @@ def test_csv_v1_rejects_unknown_headers_and_unsupported_schema_versions() -> Non
     )
 
     assert unknown.records == ()
-    assert [(issue.field, issue.code) for issue in unknown.issues] == [
-        ("typo", "unknown_header")
-    ]
+    assert [(issue.field, issue.code) for issue in unknown.issues] == [("typo", "unknown_header")]
     assert unsupported.issues[0].code == "unsupported_schema_version"
 
 
 def test_duplicate_identity_ignores_generated_id_source_and_equivalent_offsets() -> None:
-    record = WellnessCsvParser().parse(
-        schema_version=1,
-        record_type=CsvImportRecordType.HYDRATION,
-        content=(
-            "recorded_at,volume_value,notes\n"
-            "2026-08-20T10:00:00+05:30,500,Synthetic note\n"
-        ),
-    ).records[0].record
+    record = (
+        WellnessCsvParser()
+        .parse(
+            schema_version=1,
+            record_type=CsvImportRecordType.HYDRATION,
+            content=(
+                "recorded_at,volume_value,notes\n2026-08-20T10:00:00+05:30,500,Synthetic note\n"
+            ),
+        )
+        .records[0]
+        .record
+    )
     assert isinstance(record, HydrationRecord)
 
     equivalent_metadata = replace(
