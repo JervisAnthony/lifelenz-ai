@@ -5,6 +5,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { currentLocalDateTime } from '../dateTime';
+import { mealEditValue } from '../recordEditing';
 import { buildMealRecordRequest, type MealFormValue } from '../recordRequests';
 import type { RecordFormProps } from './formTypes';
 import { NotesField } from './NotesField';
@@ -34,8 +35,14 @@ function initialMealValue(): MealFormValue {
   };
 }
 
-export function MealRecordForm({ isSaving, onSubmit }: RecordFormProps) {
-  const [value, setValue] = useState(initialMealValue);
+export function MealRecordForm({
+  isSaving,
+  initialRecord,
+  onSubmit,
+}: RecordFormProps) {
+  const [value, setValue] = useState(
+    () => mealEditValue(initialRecord) ?? initialMealValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
