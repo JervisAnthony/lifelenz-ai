@@ -1,5 +1,7 @@
 """Account-scoped wellness-record orchestration through primary profile ownership."""
 
+from dataclasses import replace
+
 from lifelenz.application.authenticated_profile import AuthenticatedProfileService
 from lifelenz.application.exceptions import ApplicationValidationError
 from lifelenz.application.services import WellnessRecordService
@@ -39,14 +41,16 @@ class AuthenticatedWellnessRecordService:
         record_id: RecordId,
         record: WellnessRecord,
     ) -> WellnessRecord:
-        """Replace one owned record while preserving its identity and concrete type."""
+        """Replace one owned record while preserving identity, type, and provenance."""
         profile = self._profile_service.get_profile(user_id)
         existing = self._record_service.get_record(profile.profile_id, record_id)
         if type(existing) is not type(record):
             raise ApplicationValidationError("record_type cannot be changed during correction")
         if record.metadata.record_id != record_id:
             raise ApplicationValidationError("replacement record_id must match the requested record")
-        return self._record_service.save_record(profile.profile_id, record)
+        corrected_metadata = replace(record.metadata, source=existing.metadata.source)
+        corrected_record = replace(record, metadata=corrected_metadata)
+        return self._record_service.save_record(profile.profile_id, corrected_record)
 
     def delete_record(self, user_id: UserId, record_id: RecordId) -> None:
         """Remove one record owned by the authenticated user's primary profile."""
