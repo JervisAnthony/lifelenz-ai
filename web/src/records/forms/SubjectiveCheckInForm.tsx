@@ -8,6 +8,7 @@ import type {
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { currentLocalDateTime } from '../dateTime';
+import { checkInEditValue } from '../recordEditing';
 import {
   buildSubjectiveCheckInRequest,
   type CheckInFormValue,
@@ -90,8 +91,14 @@ function ScoreField({
   );
 }
 
-export function SubjectiveCheckInForm({ isSaving, onSubmit }: RecordFormProps) {
-  const [value, setValue] = useState(initialCheckInValue);
+export function SubjectiveCheckInForm({
+  isSaving,
+  initialRecord,
+  onSubmit,
+}: RecordFormProps) {
+  const [value, setValue] = useState(
+    () => checkInEditValue(initialRecord) ?? initialCheckInValue(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   function toggleTag(tag: CheckInTag) {
