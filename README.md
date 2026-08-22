@@ -71,19 +71,21 @@ content is not encrypted.
 A React and TypeScript web application now provides a restrained public landing page, account
 registration and login, authoritative current-user restoration, protected routing, first-time
 wellness-profile onboarding, profile-preference editing, and a responsive authenticated application
-shell. Its initial dashboard presents real structured wellness summaries when records exist and an
-honest empty state when they do not. Summary measurements remain in the backend's canonical units;
-the stored measurement-system preference does not yet convert them in the browser. A focused record
-entry foundation now supports authenticated creation for all ten current record types: Sleep,
-Daily Activity, Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness
-  check-in, Menstrual Bleeding, and Menstrual Cycle. Recent and full record history cover the same
-  types, with record-type/date filtering, owned-record correction, and deliberate confirmed deletion.
-  A protected CSV workflow supports local file selection, server validation, issue and duplicate
-  review, and explicit import for the six CSV v1 categories. Authenticated wellness-goal management
-  supports listing, creation, full-field
-  replacement, status changes, and deliberate confirmed deletion through the profile-scoped API.
-Analytics visualizations, end-to-end browser coverage, deployment, and release hardening remain
-future work.
+shell. Its dashboard presents real structured wellness summaries when records exist and an honest
+empty state when they do not. Descriptive analytics show server-derived record/metric coverage,
+baseline ranges with minimum/maximum plus mean/median markers, and mathematical trend details using
+first/last values and change. These visuals do not invent time-series samples, evaluate health, or
+recommend targets. Summary measurements remain in the backend's canonical units; the stored
+measurement-system preference does not yet convert them in the browser. A focused record entry
+foundation supports authenticated creation for all ten current record types: Sleep, Daily Activity,
+Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness check-in, Menstrual
+Bleeding, and Menstrual Cycle. Recent and full record history cover the same types, with
+record-type/date filtering, owned-record correction, and deliberate confirmed deletion. A protected
+CSV workflow supports local file selection, server validation, issue and duplicate review, and
+explicit import for the six CSV v1 categories. Authenticated wellness-goal management supports
+listing, creation, full-field replacement, status changes, and deliberate confirmed deletion through
+the profile-scoped API. End-to-end browser coverage, deployment, and release hardening remain future
+work.
 
 The planned MVP capability areas are:
 
@@ -180,7 +182,9 @@ recent and full history, record-type/date filtering, correction, confirmed delet
 CSV validate/review/commit subworkflow. Records and goals are persisted by the existing authenticated
 API; successful record mutations and CSV imports invalidate the server-owned record list and structured
 summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent with an
-explicit UTC offset, and canonical units are preserved. Chart-based visualization, end-to-end browser
+explicit UTC offset, and canonical units are preserved. The dashboard visualizes deterministic summary
+baselines as observed ranges with mean/median markers and displays server-provided mathematical trend
+change without inventing a historical series. Rich historical time-series charts, end-to-end browser
 coverage, and production deployment are not yet implemented.
 
 ## Continuous integration
@@ -279,9 +283,9 @@ Interactive documentation is available at `/docs` and `/redoc` unless documentat
 This is not a complete authentication lifecycle, backend, or public production service. Password
 reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
 standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
-notifications, production monitoring, analytics charts, real browser end-to-end coverage, mobile UI
-(including Android and iOS), and medical decision support remain out of scope. No production-grade
-security, regulatory compliance, or encrypted SQLite storage claim is made.
+notifications, production monitoring, historical time-series charts, real browser end-to-end
+coverage, mobile UI (including Android and iOS), and medical decision support remain out of scope. No
+production-grade security, regulatory compliance, or encrypted SQLite storage claim is made.
 
 More contributor guidance is available in [Development standards](docs/development.md).
 

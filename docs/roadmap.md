@@ -70,14 +70,20 @@ and provenance rules.
 Expose proven application services through product workflows:
 
 - Versioned authenticated REST API — implemented
-- Dashboard for structured summaries and recent wellness data — implemented foundation
+- Dashboard for structured summaries and descriptive metric visualizations — implemented
 - Manual entry for all ten current record types — implemented
 - Full record history and filtering — implemented
 - Record correction and deliberate deletion — implemented
 - Wellness-goal management — implemented
 - CSV import web workflow — implemented
-- Analytics visualizations — planned
+- Baseline-range and mathematical trend visualizations — implemented
 - Production deployment and release hardening — planned
+
+The dashboard visualizes only values already returned by the deterministic summary API. Baseline
+range views show minimum, maximum, mean, and median without inventing time-series points. Trend views
+show mathematical first/last change and direction without health classification, target comparison,
+or recommendations. Rich historical time-series charts remain a possible later capability if an
+appropriate server-side series contract is introduced.
 
 ## Phase 5 — Advanced intelligence
 
