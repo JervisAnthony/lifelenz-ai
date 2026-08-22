@@ -37,7 +37,8 @@ export function DailyNutritionRecordForm({
   onSubmit,
 }: RecordFormProps) {
   const [value, setValue] = useState(
-    () => dailyNutritionEditValue(initialRecord) ?? initialDailyNutritionValue(),
+    () =>
+      dailyNutritionEditValue(initialRecord) ?? initialDailyNutritionValue(),
   );
   const [error, setError] = useState<string | null>(null);
 
