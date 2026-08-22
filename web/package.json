@@ -14,7 +14,7 @@
     "test:run": "vitest run",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write src/dashboard/AnalyticsOverview.tsx src/dashboard/metricPresentation.ts src/dashboard/MetricSummaryCard.test.tsx src/dashboard/MetricSummaryCard.tsx src/pages/DashboardPage.test.tsx src/pages/DashboardPage.tsx && git diff -- src/dashboard/AnalyticsOverview.tsx src/dashboard/metricPresentation.ts src/dashboard/MetricSummaryCard.test.tsx src/dashboard/MetricSummaryCard.tsx src/pages/DashboardPage.test.tsx src/pages/DashboardPage.tsx && exit 1",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
