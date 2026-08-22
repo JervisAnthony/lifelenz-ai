@@ -47,6 +47,37 @@ describe('records API', () => {
     });
   });
 
+  it('lists filtered history using the backend record-type and aware-range query', async () => {
+    const signal = new AbortController().signal;
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue([]);
+
+    await listWellnessRecords('token', signal, {
+      recordType: 'hydration',
+      start: '2026-08-10T00:00:00+05:30',
+      end: '2026-08-13T00:00:00+05:30',
+    });
+
+    expect(spy).toHaveBeenCalledWith(
+      '/api/v1/records?record_type=hydration&start=2026-08-10T00%3A00%3A00%2B05%3A30&end=2026-08-13T00%3A00%3A00%2B05%3A30',
+      {
+        method: 'GET',
+        token: 'token',
+        signal,
+      },
+    );
+  });
+
+  it('rejects an incomplete history range before making a request', async () => {
+    const spy = vi.spyOn(apiClient, 'request');
+
+    expect(() =>
+      listWellnessRecords('token', undefined, {
+        start: '2026-08-10T00:00:00+05:30',
+      }),
+    ).toThrow('start and end must be supplied together');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('retrieves an encoded server-controlled record ID', async () => {
     const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({});
 
