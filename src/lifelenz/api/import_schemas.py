@@ -2,19 +2,21 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from lifelenz.ingestion import CSV_SCHEMA_VERSION, MAX_CSV_BYTES, CsvImportRecordType
 
 
 class _StrictImportModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    # FastAPI provides decoded JSON values. Enum strings therefore need normal
+    # transport parsing, while numeric schema fields remain explicitly strict.
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class CsvImportRequest(_StrictImportModel):
     """One versioned CSV document to validate or commit for the current account."""
 
-    schema_version: int = Field(default=CSV_SCHEMA_VERSION, ge=1)
+    schema_version: StrictInt = Field(default=CSV_SCHEMA_VERSION, ge=1)
     record_type: CsvImportRecordType
     mode: Literal["validate", "commit"] = "validate"
     content: str = Field(min_length=1, max_length=MAX_CSV_BYTES)

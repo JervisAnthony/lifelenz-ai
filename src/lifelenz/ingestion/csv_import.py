@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Callable
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum, unique
 from math import isfinite
-from typing import Any, Callable
+from typing import Any
 
 from lifelenz.domain import (
     BeverageType,

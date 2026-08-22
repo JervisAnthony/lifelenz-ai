@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -174,7 +174,7 @@ def test_duplicate_identity_ignores_generated_id_source_and_equivalent_offsets()
     equivalent_metadata = replace(
         record.metadata,
         record_id=RecordId.generate(),
-        recorded_at=datetime(2026, 8, 20, 4, 30, tzinfo=timezone.utc),
+        recorded_at=datetime(2026, 8, 20, 4, 30, tzinfo=UTC),
         source=DataSource.MANUAL,
     )
     equivalent = replace(record, metadata=equivalent_metadata)

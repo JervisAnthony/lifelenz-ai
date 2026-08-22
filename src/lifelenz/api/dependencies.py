@@ -13,7 +13,6 @@ from lifelenz.application import (
     AccountNotFoundError,
     AuthenticatedGoalService,
     AuthenticatedProfileService,
-    AuthenticatedWellnessCsvImportService,
     AuthenticatedWellnessRecordService,
     AuthenticatedWellnessSummaryService,
     AuthenticationService,
@@ -24,6 +23,7 @@ from lifelenz.application import (
     WellnessRecordService,
     WellnessSummaryService,
 )
+from lifelenz.application.authenticated_imports import AuthenticatedWellnessCsvImportService
 from lifelenz.identity import UserAccount
 from lifelenz.repositories import (
     GoalRepository,
