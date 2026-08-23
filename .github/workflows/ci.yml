@@ -206,3 +206,110 @@ jobs:
         run: npm run test:run
       - name: Build web application
         run: npm run build
+
+  browser-e2e:
+    name: Browser E2E
+    needs:
+      - tests
+      - web
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      LIFELENZ_ENVIRONMENT: e2e
+      LIFELENZ_DOCS_ENABLED: "false"
+      LIFELENZ_E2E_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            tests/e2e/requirements.txt
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Generate ephemeral E2E credentials
+        shell: bash
+        run: |
+          jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          account_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          echo "::add-mask::$jwt_secret"
+          echo "::add-mask::$account_password"
+          {
+            echo "LIFELENZ_JWT_SECRET=$jwt_secret"
+            echo "LIFELENZ_E2E_ACCOUNT_PASSWORD=$account_password"
+          } >> "$GITHUB_ENV"
+      - name: Install backend and browser dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r tests/e2e/requirements.txt
+      - name: Install locked web dependencies
+        working-directory: web
+        run: npm ci
+      - name: Build production web application
+        working-directory: web
+        run: npm run build
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Run real-browser MVP journey
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LIFELENZ_DATABASE_PATH="${RUNNER_TEMP}/lifelenz-browser-e2e.db"
+          export LIFELENZ_E2E_ARTIFACT_DIR="${RUNNER_TEMP}/lifelenz-e2e-artifacts"
+          rm -f "$LIFELENZ_DATABASE_PATH"
+          mkdir -p "$LIFELENZ_E2E_ARTIFACT_DIR"
+
+          python -m uvicorn lifelenz.api.app:create_app --factory --host 127.0.0.1 --port 8000 \
+            >"${RUNNER_TEMP}/lifelenz-e2e-api.log" 2>&1 &
+          api_pid=$!
+          (
+            cd web
+            npm run preview -- --host 127.0.0.1 --port 4173 --strictPort
+          ) >"${RUNNER_TEMP}/lifelenz-e2e-web.log" 2>&1 &
+          web_pid=$!
+
+          cleanup() {
+            kill "$web_pid" "$api_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          wait_for() {
+            local url="$1"
+            for _ in $(seq 1 60); do
+              if curl --fail --silent --show-error "$url" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 1
+            done
+            return 1
+          }
+
+          if ! wait_for "http://127.0.0.1:8000/ready"; then
+            echo "FastAPI did not become ready."
+            cat "${RUNNER_TEMP}/lifelenz-e2e-api.log"
+            exit 1
+          fi
+          if ! wait_for "$LIFELENZ_E2E_BASE_URL"; then
+            echo "Vite preview did not become ready."
+            cat "${RUNNER_TEMP}/lifelenz-e2e-web.log"
+            exit 1
+          fi
+
+          if ! python tests/e2e/browser_journey.py; then
+            echo "--- FastAPI log ---"
+            cat "${RUNNER_TEMP}/lifelenz-e2e-api.log"
+            echo "--- Vite preview log ---"
+            cat "${RUNNER_TEMP}/lifelenz-e2e-web.log"
+            echo "--- E2E artifacts ---"
+            find "$LIFELENZ_E2E_ARTIFACT_DIR" -maxdepth 1 -type f -print || true
+            exit 1
+          fi

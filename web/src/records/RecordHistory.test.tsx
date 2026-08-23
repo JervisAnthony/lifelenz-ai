@@ -44,14 +44,20 @@ function renderHistory(records: WellnessRecord[]) {
     user: { ...currentUser, profile_ids: ['synthetic-profile'] },
     accessToken: 'access-token',
   });
-  render(
+  const tree = (nextRecords: WellnessRecord[]) => (
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={auth}>
-        <RecordHistory records={records} />
+        <RecordHistory records={nextRecords} />
       </AuthContext.Provider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  return { queryClient };
+  const view = render(tree(records));
+  return {
+    queryClient,
+    rerenderHistory(nextRecords: WellnessRecord[]) {
+      view.rerender(tree(nextRecords));
+    },
+  };
 }
 
 describe('RecordHistory', () => {
@@ -161,9 +167,9 @@ describe('RecordHistory', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('deletes only after server confirmation', async () => {
+  it('keeps deletion feedback visible when the last history record disappears', async () => {
     vi.mocked(deleteWellnessRecord).mockResolvedValue(undefined);
-    renderHistory([hydrationRecord(0)]);
+    const { rerenderHistory } = renderHistory([hydrationRecord(0)]);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: 'Delete record' }));
@@ -180,6 +186,13 @@ describe('RecordHistory', () => {
     );
     expect(
       await screen.findByText('Hydration record deleted.'),
+    ).toBeInTheDocument();
+
+    rerenderHistory([]);
+
+    expect(screen.getByText('Hydration record deleted.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'No records match these filters' }),
     ).toBeInTheDocument();
   });
 });

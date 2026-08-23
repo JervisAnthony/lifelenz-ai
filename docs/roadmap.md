@@ -77,7 +77,14 @@ Expose proven application services through product workflows:
 - Wellness-goal management — implemented
 - CSV import web workflow — implemented
 - Baseline-range and mathematical trend visualizations — implemented
+- Real-browser critical MVP journey — implemented
 - Production deployment and release hardening — planned
+
+The browser E2E journey runs Chromium against a live FastAPI process, isolated SQLite database, and
+built Vite application. It validates registration, authentication, profile onboarding, record
+creation/correction/deletion, CSV validation/import, dashboard refresh, goal creation, logout, and
+protected-route redirection using synthetic data. It is a critical-path integration gate rather than
+an exhaustive cross-browser suite.
 
 The dashboard visualizes only values already returned by the deterministic summary API. Baseline
 range views show minimum, maximum, mean, and median without inventing time-series points. Trend views

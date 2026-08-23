@@ -84,8 +84,10 @@ record-type/date filtering, owned-record correction, and deliberate confirmed de
 CSV workflow supports local file selection, server validation, issue and duplicate review, and
 explicit import for the six CSV v1 categories. Authenticated wellness-goal management supports
 listing, creation, full-field replacement, status changes, and deliberate confirmed deletion through
-the profile-scoped API. End-to-end browser coverage, deployment, and release hardening remain future
-work.
+the profile-scoped API. A CI-enforced real-browser critical journey now composes registration, login,
+profile onboarding, record creation/correction/deletion, CSV validation/import, dashboard refresh,
+goal creation, logout, and protected-route redirection against live FastAPI, SQLite, and built Vite
+processes. Production deployment and release hardening remain future work.
 
 The planned MVP capability areas are:
 
@@ -184,8 +186,9 @@ API; successful record mutations and CSV imports invalidate the server-owned rec
 summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent with an
 explicit UTC offset, and canonical units are preserved. The dashboard visualizes deterministic summary
 baselines as observed ranges with mean/median markers and displays server-provided mathematical trend
-change without inventing a historical series. Rich historical time-series charts, end-to-end browser
-coverage, and production deployment are not yet implemented.
+change without inventing a historical series. Rich historical time-series charts and production
+deployment are not yet implemented. The critical MVP browser journey is covered by the isolated
+Playwright workflow documented in [Browser end-to-end validation](docs/browser-e2e.md).
 
 ## Continuous integration
 
@@ -195,12 +198,15 @@ the project metadata. CI runs Ruff lint and formatting checks, the full pytest s
 authentication tests, dependency consistency checks, deterministic project-specific security
 invariants, and wheel/source-distribution build verification. A separate Node.js 22 `Web` job installs
 the npm lockfile and runs ESLint, Prettier, strict TypeScript, Vitest, and the production Vite build.
+After the Python and Web suites pass, a `Browser E2E` job builds the web application, starts a live
+FastAPI process and isolated SQLite database, serves the built bundle with `vite preview`, installs the
+pinned Playwright Chromium runtime, and drives the critical synthetic MVP journey through the real UI.
 Dependency caching is an optimization; each job installs from its ecosystem metadata independently.
 
 Dependabot checks Python, GitHub Actions, and npm dependencies under `/web` weekly. GitGuardian
 remains a complementary external secret-scanning check. These automated checks are not a formal
 security certification, complete static analysis, penetration test, production-hardening assessment,
-regulatory-compliance validation, or deployment validation.
+regulatory-compliance validation, deployment validation, or exhaustive cross-browser certification.
 
 ## Local API
 
@@ -283,8 +289,8 @@ Interactive documentation is available at `/docs` and `/redoc` unless documentat
 This is not a complete authentication lifecycle, backend, or public production service. Password
 reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
 standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
-notifications, production monitoring, historical time-series charts, real browser end-to-end
-coverage, mobile UI (including Android and iOS), and medical decision support remain out of scope. No
+notifications, production monitoring, historical time-series charts, exhaustive browser coverage,
+mobile UI (including Android and iOS), and medical decision support remain out of scope. No
 production-grade security, regulatory compliance, or encrypted SQLite storage claim is made.
 
 More contributor guidance is available in [Development standards](docs/development.md).
@@ -298,6 +304,8 @@ More contributor guidance is available in [Development standards](docs/developme
   engineering expectations.
 - [CSV schema v1](docs/csv-import-v1.md) documents supported categories, exact headers, validation,
   normalization, and duplicate semantics.
+- [Browser end-to-end validation](docs/browser-e2e.md) documents the isolated Chromium critical-path
+  journey and its CI/local runtime contract.
 - [Roadmap](docs/roadmap.md) separates near-term milestones from future work.
 
 ## Wellness and medical disclaimer
