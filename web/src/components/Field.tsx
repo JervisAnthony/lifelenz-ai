@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes } from 'react';
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -7,7 +7,8 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Field({ id, label, hint, error, ...inputProps }: FieldProps) {
-  const fieldId = id ?? inputProps.name;
+  const reactId = useId().replace(/[^A-Za-z0-9_-]/g, '');
+  const fieldId = `${id ?? inputProps.name ?? 'field'}-${reactId}`;
   const hintId = hint ? `${fieldId}-hint` : undefined;
   const errorId = error ? `${fieldId}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
