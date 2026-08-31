@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "candidate": "mvp1-0.1.0-rc.1",
+  "product_version": "0.1.0",
+  "release_channel": "beta",
+  "status": "release-candidate",
+  "python_runtime": "3.13",
+  "python_requires": ">=3.13",
+  "node_runtime": "22",
+  "node_engine": ">=22.13 <23",
+  "storage_contract": "sqlite-single-api-instance"
+}

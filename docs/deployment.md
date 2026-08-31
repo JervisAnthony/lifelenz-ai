@@ -1,8 +1,8 @@
 # Production deployment foundation
 
-Commit 37 introduced a provider-neutral, production-shaped container deployment for LifeLenz. Commit 38 hardens that foundation with fail-closed production configuration, browser-facing security headers, keyboard skip navigation, and additional deployment assertions.
+Commit 37 introduced a provider-neutral, production-shaped container deployment for LifeLenz. Commit 38 hardened that foundation with fail-closed production configuration, browser-facing security headers, keyboard skip navigation, and additional deployment assertions. Commit 39 adds an operational SQLite backup/verify/restore helper and a destructive CI restore drill for the beta release candidate.
 
-This remains a single-host MVP deployment foundation, not a claim that LifeLenz is ready for unrestricted public production use. Public TLS termination, backup/restore operations, monitoring, abuse controls, and release-candidate validation remain separate responsibilities.
+This remains a single-host MVP deployment foundation, not a claim that LifeLenz is ready for unrestricted public production use. Public TLS termination, monitoring, abuse controls, off-host backup policy, and hosting-specific release decisions remain separate responsibilities.
 
 ## Topology
 
@@ -106,7 +106,81 @@ docker compose -f deploy/compose.yml down -v
 
 Do not use `-v` against an environment whose data must be retained.
 
-Back up the SQLite volume using an operationally appropriate process before upgrades or destructive maintenance. This repository does not currently provide automated backup, restore, encryption-at-rest, or disaster-recovery orchestration.
+## SQLite backup, verification, and restore
+
+The production API image includes `deploy/sqlite_maintenance.py`. It uses SQLite's backup API and `PRAGMA integrity_check`; it does not print database rows, credentials, or wellness payloads.
+
+### Create and export a backup
+
+Create a coherent backup while the API is running:
+
+```bash
+docker compose -f deploy/compose.yml exec -T api \
+  python /app/deploy/sqlite_maintenance.py backup \
+  --database /var/lib/lifelenz/lifelenz.db \
+  --output /tmp/lifelenz-backup.db
+```
+
+Copy the verified backup out of the container and therefore out of the named data volume:
+
+```bash
+mkdir -p backups
+docker compose -f deploy/compose.yml cp \
+  api:/tmp/lifelenz-backup.db \
+  ./backups/lifelenz-backup.db
+```
+
+Remove the temporary in-container copy:
+
+```bash
+docker compose -f deploy/compose.yml exec -T api rm -f /tmp/lifelenz-backup.db
+```
+
+The exported file should then be moved into the operator's approved backup storage. This repository does not choose an off-host storage provider, retention period, encryption-at-rest mechanism, or access policy.
+
+### Verify an exported backup
+
+The helper can verify a host-side backup before a destructive operation:
+
+```bash
+python deploy/sqlite_maintenance.py verify \
+  --database ./backups/lifelenz-backup.db
+```
+
+A successful verification prints only the verified file path.
+
+### Restore a backup
+
+Restore is deliberately more restrictive than backup. Stop the API before restore:
+
+```bash
+docker compose -f deploy/compose.yml stop api
+```
+
+Then run a one-off API image with the backup directory mounted read-only:
+
+```bash
+docker compose -f deploy/compose.yml run --rm -T \
+  -v "$PWD/backups:/backup:ro" \
+  api python /app/deploy/sqlite_maintenance.py restore \
+  --input /backup/lifelenz-backup.db \
+  --database /var/lib/lifelenz/lifelenz.db \
+  --replace \
+  --confirm-api-stopped
+```
+
+`--confirm-api-stopped` is mandatory. `--replace` is required only when the destination database already exists. A restore validates the source backup, removes stale `-wal`/`-shm` sidecars when replacing a database, restores through SQLite's backup API, and validates the resulting database before returning success.
+
+Restart the stack and verify readiness:
+
+```bash
+docker compose -f deploy/compose.yml up -d
+curl --fail http://127.0.0.1:8080/api/v1/ready
+```
+
+A real recovery runbook should also verify application login and representative owned data after restore.
+
+The helper is an operational primitive, not automated disaster recovery. Scheduling, off-host retention, encryption, access controls, recovery-time objectives, and recovery-point objectives remain hosting decisions.
 
 ## Health and readiness
 
@@ -123,7 +197,7 @@ Application-level API health remains available through:
 
 ## Browser-facing security headers
 
-The Nginx gateway now applies a conservative browser security baseline to gateway, SPA, and proxied API responses:
+The Nginx gateway applies a conservative browser security baseline to gateway, SPA, and proxied API responses:
 
 - `Content-Security-Policy`
 - `Cross-Origin-Opener-Policy: same-origin`
@@ -149,11 +223,11 @@ Rate limiting, abuse controls, TLS policy, certificate automation, and external-
 
 ## Accessibility hardening
 
-The authentication and authenticated application layouts now provide a keyboard-reachable `Skip to main content` link targeting one explicit `#main-content` landmark. The target is programmatically focusable so keyboard users can bypass repeated navigation.
+The authentication and authenticated application layouts provide a keyboard-reachable `Skip to main content` link targeting one explicit `#main-content` landmark. The target is programmatically focusable so keyboard users can bypass repeated navigation.
 
 The real Chromium MVP journey verifies that the skip link is the first keyboard focus target and that activation transfers focus to the main-content landmark in both authentication and authenticated layouts.
 
-This is targeted accessibility hardening, not a formal WCAG conformance claim. Commit 39 release-candidate work should still include final manual keyboard/screen-reader and responsive checks before release.
+This is targeted accessibility hardening, not a formal WCAG conformance claim. The release-candidate checklist still requires final manual keyboard/screen-reader and responsive checks before exposure to beta users.
 
 ## Logs
 
@@ -161,7 +235,7 @@ Uvicorn and Nginx write operational logs to standard output/error for collection
 
 ## CI deployment validation
 
-`.github/workflows/deployment.yml` validates this deployment contract on pull requests, pushes to `main`, and manual runs. The workflow:
+`.github/workflows/deployment.yml` validates the base deployment contract on pull requests, pushes to `main`, and manual runs. The workflow:
 
 1. generates fresh masked test-only runtime credentials;
 2. renders the Compose configuration;
@@ -176,15 +250,20 @@ Uvicorn and Nginx write operational logs to standard output/error for collection
 11. confirms production API documentation remains disabled;
 12. tears down the stack and test volume.
 
-This validates buildability, fail-closed configuration, process startup, same-origin proxying, response-header hardening, basic persistence across an API restart, and the intended single-host topology. It does not replace the existing Chromium Browser E2E journey and does not constitute performance, penetration, disaster-recovery, or multi-host testing.
+`.github/workflows/release-candidate.yml` adds the destructive recovery evidence required for the MVP1 beta candidate. It builds candidate artifacts, boots the production images, registers a synthetic account, exports and verifies an SQLite backup, destroys the original named volume, restores into a fresh volume, and proves the same account can authenticate after recovery.
+
+The release-candidate workflow never uploads the temporary SQLite database backup as a retained artifact.
+
+Together these workflows validate buildability, fail-closed configuration, process startup, same-origin proxying, response-header hardening, persistence across restart, and a concrete SQLite backup/restore path. They do not constitute performance, penetration, multi-host, or automated disaster-recovery testing.
 
 ## Current limitations
 
-Before a public release, LifeLenz still requires release-candidate validation and hosting-specific operational decisions. Current deployment limitations include:
+Before unrestricted public release, hosting-specific operational decisions remain. Current deployment limitations include:
 
 - single API instance because SQLite is the active durable backend;
-- no automated backup or restore workflow;
-- no encryption-at-rest implementation;
+- no scheduled or managed off-host backup service;
+- no repository-provided backup encryption or retention policy;
+- no encryption-at-rest implementation for the active database volume;
 - no hosted secret-manager integration in this repository;
 - no bundled TLS termination or HSTS because TLS belongs at the external edge;
 - no formal production monitoring or alerting integration;
@@ -192,4 +271,4 @@ Before a public release, LifeLenz still requires release-candidate validation an
 - no formal accessibility certification;
 - no claim of regulatory compliance or medical-device readiness.
 
-The deployment foundation is deliberately conservative: it makes the existing MVP reproducible and more defensive in a production-shaped runtime without overstating operational maturity.
+The deployment foundation is deliberately conservative: it makes the existing MVP reproducible, recoverable through a tested SQLite procedure, and more defensive in a production-shaped runtime without overstating operational maturity.

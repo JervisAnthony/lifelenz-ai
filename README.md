@@ -1,74 +1,74 @@
 # LifeLenz-AI
 
-LifeLenz-AI is an early-stage personal wellness intelligence project. It is intended to
+LifeLenz-AI is a beta-stage personal wellness intelligence project. It is intended to
 help people organize longitudinal lifestyle data, understand patterns relative to their
 own baselines, and receive transparent, non-diagnostic observations.
 
 The core value proposition is context: instead of treating sleep, activity, hydration,
 mood, energy, and stress as isolated readings, LifeLenz-AI aims to make changes and
-co-occurring patterns understandable over time. Observations will use conservative
-language and expose the data and rules behind them.
+co-occurring patterns understandable over time. Observations use conservative language
+and expose the data and rules behind them.
 
 ## Project status
 
-LifeLenz-AI is at version 0.1.0 and in the foundation stage. The repository currently
-contains an installable `lifelenz` Python package, development tooling, and a controlled
-taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
-severity. Shared domain foundations provide record identifiers, aware time ranges, common
-metadata, and reusable validation. Concrete domain records capture completed sleep sessions,
-daily activity totals, completed workouts, hydration events, meal nutrition, and daily
-nutrition summaries, neutral body measurements, and subjective mood, energy, stress, and
-optional motivation check-ins with explicitly validated values. They also capture menstrual
-bleeding observations, user-supplied menstrual-cycle date ranges, and privacy-conscious
-wellness profiles with tracking preferences, plus user-defined wellness goals. Framework-independent
-repository contracts define storage-neutral operations for profiles, goals, and wellness records.
-Deterministic in-memory implementations support tests and early application development; they are
-process-local, non-durable, and lose all data when the process ends. Durable SQLite repositories now
-store profiles, goals, and wellness records in a local database file using explicit deterministic
-JSON serialization. They preserve typed domain values, canonical units, original aware timestamp
-offsets, and data across repository instances and process restarts. This local persistence backend is
-suitable for development and local API composition, but it is not encrypted by this
-implementation and is not a hosted or multi-user database service. Framework-independent
-application services coordinate repositories, enforce profile existence for profile-owned
-operations, and translate
-expected missing-entity failures. The profile, goal, and record services do not calculate analytics
-or goal progress. Deterministic
+LifeLenz-AI is at product version `0.1.0`. Commit 39 establishes beta release candidate
+`mvp1-0.1.0-rc.1`; the final MVP1 promotion and repository release/tag decision remain a
+separate Commit 40 step. The repository contains an installable `lifelenz` Python package,
+development tooling, and a controlled taxonomy for wellness categories, metrics, units,
+data sources, confidence, and insight severity. Shared domain foundations provide record
+identifiers, aware time ranges, common metadata, and reusable validation. Concrete domain
+records capture completed sleep sessions, daily activity totals, completed workouts,
+hydration events, meal nutrition, daily nutrition summaries, neutral body measurements,
+and subjective mood, energy, stress, and optional motivation check-ins with explicitly
+validated values. They also capture menstrual bleeding observations, user-supplied
+menstrual-cycle date ranges, privacy-conscious wellness profiles with tracking preferences,
+and user-defined wellness goals.
+
+Framework-independent repository contracts define storage-neutral operations for profiles,
+goals, and wellness records. Deterministic in-memory implementations support tests and
+application composition. Durable SQLite repositories store profiles, goals, accounts,
+ownership mappings, and wellness records in a local database file using explicit deterministic
+serialization and schema migrations. They preserve typed domain values, canonical units,
+original aware timestamp offsets, and data across repository instances and process restarts.
+The active SQLite persistence is not encrypted by this implementation and deliberately supports
+one API instance per database volume; LifeLenz does not claim horizontal database scaling or
+managed-database failover.
+
+Framework-independent application services coordinate repositories, enforce profile existence
+and ownership boundaries, and translate expected missing-entity failures. Deterministic
 personal-baseline analytics summarize supported canonical metrics from a person's own recorded
 observations using count, mean, median, minimum, maximum, and population standard deviation.
 Baselines preserve canonical units and use record metadata timestamps; they provide no medical
-interpretation, population comparison, recommended target, or health classification. Deterministic
-basic trend analytics report first and last values, absolute and percentage change when defined,
-least-squares slope per day, and neutral increasing, decreasing, or stable direction for supported
-canonical metrics. Optional time ranges use metadata timestamps. Direction is purely mathematical:
-increasing does not mean healthy, decreasing does not mean unhealthy, and trends neither predict
-future values nor recommend actions. A framework-independent wellness-summary workflow now requires
-an existing profile, reads its stored records with optional metadata-time filtering, and produces one
-structured canonical-unit summary per supported metric. Metrics with at least one sample include a
-baseline, while metrics with at least two samples also include a trend. The result is structured data,
-not user-facing medical or coaching text. Framework-independent account identity, Argon2 password
-hashing, short-lived signed access tokens, durable accounts, and explicit profile ownership are now
-available. Account registration does not create a wellness profile: authentication establishes
-identity, while a separate `UserId -> ProfileId` mapping establishes authorization context. Hosted
-database deployment, cloud synchronization, goal progress, correlations,
-recommendations, predictions, direct wearable integrations, vendor-specific wellness export
-compatibility, notifications, production monitoring, mobile applications (including Android and
-iOS), and medical decision support do not yet exist. The project does not yet claim production readiness,
-regulatory compliance, encryption at rest, cloud backup, or cross-repository transaction coordination.
+interpretation, population comparison, recommended target, or health classification.
+Deterministic basic trend analytics report first and last values, absolute and percentage change
+when defined, least-squares slope per day, and neutral increasing, decreasing, or stable direction
+for supported canonical metrics. Direction is purely mathematical: increasing does not mean
+healthy, decreasing does not mean unhealthy, and trends neither predict future values nor
+recommend actions. A wellness-summary workflow produces structured canonical-unit summaries from
+stored records. Metrics with at least one sample include a baseline, while metrics with at least
+two samples also include a trend. The result is structured descriptive data, not user-facing
+medical or coaching text.
 
-LifeLenz-AI now also includes a versioned FastAPI foundation for local development. Alongside public
-system metadata, liveness, and SQLite-readiness endpoints, it supports account registration, login,
-bearer-protected current-user retrieval, explicit primary-profile onboarding and replacement, and
-owned wellness-record creation, listing, retrieval, correction, and deletion for all ten current
-record types. CSV schema v1 also provides authenticated validate/commit ingestion for six stable
-record categories with row-level validation, semantic duplicate detection, canonical-unit
-normalization, and `csv_import` provenance. Every
-wellness-resource route requires bearer authentication and resolves ownership from the account;
-clients cannot choose a profile identifier. Owned wellness-goal management and a deterministic,
-structured wellness-summary endpoint now expose the existing goal, baseline, and trend application
-capabilities without adding medical interpretation or generated recommendations. The local SQLite
-content is not encrypted.
+Framework-independent account identity, Argon2 password hashing, short-lived signed access tokens,
+durable accounts, and explicit profile ownership are implemented. Account registration does not
+create a wellness profile: authentication establishes identity, while a separate
+`UserId -> ProfileId` mapping establishes authorization context. Password reset, email verification,
+MFA, refresh-token rotation, cloud synchronization, correlations, recommendations, predictions,
+direct wearable integrations, vendor-specific wellness export compatibility, notifications,
+production monitoring, mobile applications, and medical decision support remain outside the MVP1
+candidate.
 
-A React and TypeScript web application now provides a restrained public landing page, account
+LifeLenz-AI includes a versioned FastAPI API with public system metadata, liveness, and
+SQLite-readiness endpoints; account registration and login; bearer-protected current-user
+retrieval; explicit primary-profile onboarding and replacement; owned wellness-record creation,
+listing, retrieval, correction, and deletion for all ten current record types; authenticated CSV
+schema v1 validate/commit ingestion for six stable record categories; wellness-goal management;
+and deterministic structured wellness summaries. Every wellness-resource route requires bearer
+authentication and resolves ownership from the account; clients cannot choose a profile identifier.
+CSV v1 provides row-level validation, semantic duplicate detection, canonical-unit normalization,
+and `csv_import` provenance. The local SQLite content is not encrypted.
+
+A React and TypeScript web application provides a restrained public landing page, account
 registration and login, authoritative current-user restoration, protected routing, first-time
 wellness-profile onboarding, profile-preference editing, and a responsive authenticated application
 shell. Its dashboard presents real structured wellness summaries when records exist and an honest
@@ -76,32 +76,45 @@ empty state when they do not. Descriptive analytics show server-derived record/m
 baseline ranges with minimum/maximum plus mean/median markers, and mathematical trend details using
 first/last values and change. These visuals do not invent time-series samples, evaluate health, or
 recommend targets. Summary measurements remain in the backend's canonical units; the stored
-measurement-system preference does not yet convert them in the browser. A focused record entry
-foundation supports authenticated creation for all ten current record types: Sleep, Daily Activity,
-Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective wellness check-in, Menstrual
+measurement-system preference does not yet convert them in the browser.
+
+Manual record entry supports all ten current record types: Sleep, Daily Activity, Workout,
+Hydration, Meal, Daily Nutrition, Body Measurement, Subjective Wellness Check-In, Menstrual
 Bleeding, and Menstrual Cycle. Recent and full record history cover the same types, with
 record-type/date filtering, owned-record correction, and deliberate confirmed deletion. A protected
 CSV workflow supports local file selection, server validation, issue and duplicate review, and
 explicit import for the six CSV v1 categories. Authenticated wellness-goal management supports
-listing, creation, full-field replacement, status changes, and deliberate confirmed deletion through
-the profile-scoped API. A CI-enforced real-browser critical journey now composes registration, login,
-profile onboarding, record creation/correction/deletion, CSV validation/import, dashboard refresh,
-goal creation, logout, and protected-route redirection against live FastAPI, SQLite, and built Vite
-processes. Production deployment and release hardening remain future work.
+listing, creation, full-field replacement, status changes, and deliberate confirmed deletion.
 
-The planned MVP capability areas are:
+A CI-enforced real-browser critical journey composes registration, login, profile onboarding,
+record creation/correction/deletion, CSV validation/import, dashboard refresh, goal creation,
+logout, protected-route redirection, and keyboard skip navigation against live FastAPI, SQLite,
+and a built Vite application. A provider-neutral Docker Compose deployment builds separate
+unprivileged API and web containers, exposes only the same-origin web gateway, persists SQLite in a
+named volume, applies a browser-facing security-header baseline, and fails closed on unsafe
+production configuration. Commit 39 adds a tested SQLite backup/verify/restore helper and a release-
+candidate CI drill that destroys the original disposable data volume, restores an exported backup
+into a fresh volume, and proves the same synthetic account can authenticate afterward.
 
-- Structured records for sleep, activity, hydration, basic nutrition, body measurements,
-  mood, energy, and stress
-- Personal profiles and goals
-- Personal-baseline analytics and trend summaries
-- Deterministic, explainable wellness observations
-- Typed wellness summaries
+This candidate does **not** claim unrestricted public production readiness. Public HTTPS/HSTS,
+off-host backup retention and encryption policy, host/secret/database access ownership, production
+monitoring and alerting, rate limiting/abuse controls, formal accessibility certification,
+regulatory compliance, and medical-device readiness remain outside the repository's automated
+release-candidate evidence.
 
-Manual entry is implemented for all ten record types. Structured CSV schema v1 imports are
-implemented for Sleep, Daily Activity, Hydration, Daily Nutrition, Body Measurement, and Subjective
-Wellness Check-In. Direct wearable connections, vendor-specific formats, and broad
-wellness-platform integrations remain future work.
+The MVP1 capability areas are:
+
+- structured records for sleep, activity, hydration, basic nutrition, body measurements,
+  mood, energy, and stress;
+- personal profiles and goals;
+- personal-baseline analytics and trend summaries;
+- deterministic, explainable wellness observations;
+- typed wellness summaries;
+- authenticated browser workflows for entry, history, correction, deletion, CSV import, and goals;
+- a production-shaped single-host deployment with tested SQLite recovery.
+
+Direct wearable connections, vendor-specific formats, broad wellness-platform integrations, and
+advanced predictive/recommendation capabilities remain future work.
 
 ## Architecture
 
@@ -168,27 +181,44 @@ npm run test:run
 npm run build
 ```
 
-The current web alpha stores its short-lived bearer access token in browser `sessionStorage` through a
-single storage abstraction. Closing the browser session clears that storage, but `sessionStorage` does
-not eliminate cross-site scripting risk. There are no refresh tokens or server-side revocation/logout
-sessions yet; logout clears client state but cannot revoke an already-issued token. The server remains
-authoritative through `/api/v1/auth/me`, and production authentication hardening will be revisited
-before public deployment. Passwords, account objects, wellness data, and signing secrets are not
-persisted in browser storage.
+The current web beta candidate stores its short-lived bearer access token in browser `sessionStorage`
+through a single storage abstraction. Closing the browser session clears that storage, but
+`sessionStorage` does not eliminate cross-site scripting risk. There are no refresh tokens or
+server-side revocation/logout sessions yet; logout clears client state but cannot revoke an already-
+issued token. The server remains authoritative through `/api/v1/auth/me`. Passwords, account objects,
+wellness data, and signing secrets are not persisted in browser storage.
 
 After authentication, the web application derives onboarding state from the server-owned profile
 identifiers returned by `/api/v1/auth/me`. Users without a profile are guided through the existing
 profile API; configured users can review their preferences and open a summary-backed dashboard. The
 web interface provides Home, Records, Goals, and Profile destinations. Records supports manual entry,
 recent and full history, record-type/date filtering, correction, confirmed deletion, and a protected
-CSV validate/review/commit subworkflow. Records and goals are persisted by the existing authenticated
-API; successful record mutations and CSV imports invalidate the server-owned record list and structured
+CSV validate/review/commit subworkflow. Records and goals are persisted by the authenticated API;
+successful record mutations and CSV imports invalidate the server-owned record list and structured
 summary so the dashboard can retrieve current analytics. Browser-local datetimes are sent with an
-explicit UTC offset, and canonical units are preserved. The dashboard visualizes deterministic summary
-baselines as observed ranges with mean/median markers and displays server-provided mathematical trend
-change without inventing a historical series. Rich historical time-series charts and production
-deployment are not yet implemented. The critical MVP browser journey is covered by the isolated
+explicit UTC offset, and canonical units are preserved. The dashboard visualizes deterministic
+summary baselines as observed ranges with mean/median markers and displays server-provided
+mathematical trend change without inventing a historical series. Rich historical time-series charts
+remain a possible future capability. The critical MVP browser journey is covered by the isolated
 Playwright workflow documented in [Browser end-to-end validation](docs/browser-e2e.md).
+
+## Production-shaped deployment
+
+The provider-neutral Docker Compose deployment is documented in
+[Production deployment](docs/deployment.md). It builds a Python 3.13/FastAPI API image and a Node 22
+build served by an unprivileged Nginx web image. Only the web gateway is published to the host; `/api`
+traffic remains same-origin and is reverse-proxied internally. SQLite persists in a named volume and
+is intentionally limited to one API instance per database volume.
+
+Production startup fails closed unless API documentation is disabled, the SQLite path is absolute,
+and the JWT signing secret contains at least 48 UTF-8 bytes. The gateway applies CSP and related
+browser security headers. HSTS belongs at the trusted external TLS terminator because the bundled
+gateway serves HTTP only.
+
+Commit 39's SQLite maintenance helper provides explicit backup, verification, and restore operations
+using SQLite's backup API plus integrity checks. The release-candidate workflow proves recovery into
+a fresh data volume. This is a tested recovery primitive, not a scheduled/off-host backup service or
+a disaster-recovery guarantee.
 
 ## Continuous integration
 
@@ -201,12 +231,19 @@ the npm lockfile and runs ESLint, Prettier, strict TypeScript, Vitest, and the p
 After the Python and Web suites pass, a `Browser E2E` job builds the web application, starts a live
 FastAPI process and isolated SQLite database, serves the built bundle with `vite preview`, installs the
 pinned Playwright Chromium runtime, and drives the critical synthetic MVP journey through the real UI.
-Dependency caching is an optimization; each job installs from its ecosystem metadata independently.
+
+`Deployment Validation` independently builds and boots the production Compose stack, verifies
+production configuration rejection, gateway/API readiness, security headers, authentication,
+SQLite persistence across restart, and disabled production documentation. Commit 39 adds a separate
+`Release Candidate` workflow that validates the static candidate contract, builds candidate artifacts
+and SHA-256 checksums, and proves backup/restore after destruction of the original disposable data
+volume. The temporary SQLite backup used by that workflow is not retained as a CI artifact.
 
 Dependabot checks Python, GitHub Actions, and npm dependencies under `/web` weekly. GitGuardian
 remains a complementary external secret-scanning check. These automated checks are not a formal
-security certification, complete static analysis, penetration test, production-hardening assessment,
-regulatory-compliance validation, deployment validation, or exhaustive cross-browser certification.
+security certification, complete static analysis, penetration test, regulatory-compliance validation,
+formal WCAG certification, exhaustive cross-browser certification, or proof of unrestricted public
+production readiness.
 
 ## Local API
 
@@ -286,12 +323,12 @@ a trend. These calculations are structured descriptive data, not diagnosis, medi
 prediction, a health score, or an AI-generated recommendation.
 
 Interactive documentation is available at `/docs` and `/redoc` unless documentation is disabled.
-This is not a complete authentication lifecycle, backend, or public production service. Password
-reset, email verification, MFA, social login, refresh-token rotation, rate limiting, CORS,
-standalone baseline/trend endpoints, generated advice, hosted deployment, cloud synchronization,
-notifications, production monitoring, historical time-series charts, exhaustive browser coverage,
-mobile UI (including Android and iOS), and medical decision support remain out of scope. No
-production-grade security, regulatory compliance, or encrypted SQLite storage claim is made.
+Production configuration requires it to be disabled. This is not a complete authentication lifecycle
+or unrestricted public production service. Password reset, email verification, MFA, social login,
+refresh-token rotation, rate limiting, generated advice, public-host monitoring, historical time-series
+charts, exhaustive browser coverage, mobile UI, and medical decision support remain out of scope.
+No regulatory-compliance, medical-device, encrypted-SQLite, high-availability, or unrestricted
+production-readiness claim is made.
 
 More contributor guidance is available in [Development standards](docs/development.md).
 
@@ -306,7 +343,13 @@ More contributor guidance is available in [Development standards](docs/developme
   normalization, and duplicate semantics.
 - [Browser end-to-end validation](docs/browser-e2e.md) documents the isolated Chromium critical-path
   journey and its CI/local runtime contract.
-- [Roadmap](docs/roadmap.md) separates near-term milestones from future work.
+- [Production deployment](docs/deployment.md) documents the single-host container topology,
+  production configuration, security headers, and SQLite recovery procedure.
+- [MVP1 beta release candidate](docs/release-candidate.md) documents candidate artifacts, recovery
+  evidence, remaining manual/hosting gates, and Commit 40 promotion rules.
+- [Release readiness](docs/release-readiness.md) defines the minimum evidence and explicit non-claims
+  for MVP1 promotion.
+- [Roadmap](docs/roadmap.md) separates implemented milestones from future work.
 
 ## Wellness and medical disclaimer
 

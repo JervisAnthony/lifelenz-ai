@@ -12,6 +12,7 @@ RUN groupadd --system --gid 10001 lifelenz \
 
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+COPY deploy/sqlite_maintenance.py ./deploy/sqlite_maintenance.py
 
 RUN python -m pip install . \
     && install -d -o lifelenz -g lifelenz /var/lib/lifelenz
