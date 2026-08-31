@@ -41,6 +41,25 @@ jobs:
       - name: Build production images
         run: docker compose -f deploy/compose.yml build --pull
 
+      - name: Reject unsafe production API settings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if docker compose -f deploy/compose.yml run --rm -T \
+            -e LIFELENZ_DOCS_ENABLED=true \
+            api python -c 'from lifelenz.api.config import load_api_settings; load_api_settings()'; then
+            echo "Production configuration unexpectedly allowed API documentation."
+            exit 1
+          fi
+
+          if docker compose -f deploy/compose.yml run --rm -T \
+            -e LIFELENZ_DATABASE_PATH=relative/lifelenz.db \
+            api python -c 'from lifelenz.api.config import load_api_settings; load_api_settings()'; then
+            echo "Production configuration unexpectedly allowed a relative database path."
+            exit 1
+          fi
+
       - name: Start production stack
         run: docker compose -f deploy/compose.yml up -d
 
@@ -71,9 +90,10 @@ jobs:
           base_url = "http://127.0.0.1:8080"
           password = os.environ["LIFELENZ_DEPLOYMENT_SMOKE_PASSWORD"]
 
-          def get(path: str) -> tuple[bytes, str]:
+          def get(path: str) -> tuple[bytes, dict[str, str]]:
               with urllib.request.urlopen(base_url + path, timeout=10) as response:
-                  return response.read(), response.headers.get("content-type", "")
+                  headers = {name.casefold(): value for name, value in response.headers.items()}
+                  return response.read(), headers
 
           def post(path: str, payload: dict[str, str]) -> dict[str, object]:
               request = urllib.request.Request(
@@ -85,19 +105,36 @@ jobs:
               with urllib.request.urlopen(request, timeout=10) as response:
                   return json.loads(response.read())
 
-          health, _ = get("/healthz")
-          assert health == b"ok\n"
+          def assert_security_headers(headers: dict[str, str]) -> None:
+              assert headers["x-content-type-options"] == "nosniff"
+              assert headers["x-frame-options"] == "DENY"
+              assert headers["referrer-policy"] == "no-referrer"
+              assert headers["permissions-policy"] == "camera=(), geolocation=(), microphone=()"
+              assert headers["cross-origin-opener-policy"] == "same-origin"
+              assert headers["cross-origin-resource-policy"] == "same-origin"
+              policy = headers["content-security-policy"]
+              assert "default-src 'self'" in policy
+              assert "frame-ancestors 'none'" in policy
+              assert "object-src 'none'" in policy
+              assert "script-src 'self'" in policy
+              assert "style-src 'self' 'unsafe-inline'" in policy
 
-          ready, ready_type = get("/api/v1/ready")
-          assert "application/json" in ready_type
+          health, health_headers = get("/healthz")
+          assert health == b"ok\n"
+          assert_security_headers(health_headers)
+
+          ready, ready_headers = get("/api/v1/ready")
+          assert "application/json" in ready_headers["content-type"]
           ready_payload = json.loads(ready)
           assert ready_payload["status"] == "ready"
           assert ready_payload["database"] == "available"
+          assert_security_headers(ready_headers)
 
-          deep_link, deep_type = get("/app/records")
-          assert "text/html" in deep_type
+          deep_link, deep_headers = get("/app/records")
+          assert "text/html" in deep_headers["content-type"]
           assert b'<div id="root"></div>' in deep_link
           assert b"<title>LifeLenz</title>" in deep_link
+          assert_security_headers(deep_headers)
 
           account = post(
               "/api/v1/auth/register",

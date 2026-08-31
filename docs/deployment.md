@@ -1,8 +1,8 @@
 # Production deployment foundation
 
-Commit 37 introduces a provider-neutral, production-shaped container deployment for LifeLenz. It is intended to make the current MVP reproducibly deployable on a single Docker host while preserving the existing same-origin web/API boundary and durable SQLite behavior.
+Commit 37 introduced a provider-neutral, production-shaped container deployment for LifeLenz. Commit 38 hardens that foundation with fail-closed production configuration, browser-facing security headers, keyboard skip navigation, and additional deployment assertions.
 
-This is a deployment foundation, not a claim that LifeLenz is ready for unrestricted public production use. Security, accessibility, operational, and release hardening remain separate work.
+This remains a single-host MVP deployment foundation, not a claim that LifeLenz is ready for unrestricted public production use. Public TLS termination, backup/restore operations, monitoring, abuse controls, and release-candidate validation remain separate responsibilities.
 
 ## Topology
 
@@ -23,7 +23,7 @@ Moving beyond one API instance requires a separately designed persistence archit
 
 ## Required secret
 
-`LIFELENZ_JWT_SECRET` has no default and must be supplied at runtime. Generate a fresh value using an appropriate secret generator and inject it through the deployment platform or host environment.
+`LIFELENZ_JWT_SECRET` has no default and must be supplied at runtime. Production configuration requires at least 48 UTF-8 bytes of signing-secret material. Generate a fresh value using an appropriate secret generator and inject it through the deployment platform or host environment.
 
 For a local Docker-host smoke deployment in PowerShell:
 
@@ -39,7 +39,17 @@ export LIFELENZ_JWT_SECRET="$(python3 -c 'import secrets; print(secrets.token_ur
 
 Do not commit the generated value. For an actual hosted environment, prefer the platform's secret manager rather than a checked-in `.env` file.
 
-## Optional runtime configuration
+## Production configuration invariants
+
+When `LIFELENZ_ENVIRONMENT` is `production` (case-insensitive), API startup now fails closed unless all of these conditions hold:
+
+- API documentation is disabled;
+- `LIFELENZ_DATABASE_PATH` resolves to an absolute filesystem path;
+- the JWT signing secret contains at least 48 UTF-8 bytes.
+
+The general non-production minimum remains 32 UTF-8 bytes so existing development and test contracts remain unchanged.
+
+Surrounding whitespace in the environment name is rejected rather than allowing a value such as ` production ` to bypass production checks.
 
 The Compose contract fixes these production-safe values:
 
@@ -111,13 +121,39 @@ Application-level API health remains available through:
 /api/v1/ready
 ```
 
+## Browser-facing security headers
+
+The Nginx gateway now applies a conservative browser security baseline to gateway, SPA, and proxied API responses:
+
+- `Content-Security-Policy`
+- `Cross-Origin-Opener-Policy: same-origin`
+- `Cross-Origin-Resource-Policy: same-origin`
+- `Permissions-Policy: camera=(), geolocation=(), microphone=()`
+- `Referrer-Policy: no-referrer`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+
+The CSP is same-origin by default, denies framing and objects, and does not permit inline scripts. `style-src` currently includes `'unsafe-inline'` because the deterministic dashboard range visualization uses inline positional style values for mean/median markers. Removing that allowance requires a separate rendering refactor rather than silently breaking those visuals.
+
+Nginx server-version tokens are disabled.
+
+`Strict-Transport-Security` is intentionally not emitted by the bundled HTTP-only gateway. A trusted external HTTPS terminator should own HSTS because it is the component that can accurately guarantee TLS for the public origin.
+
 ## Network exposure and TLS
 
 Only the web gateway is published to the host. The API service remains internal to the Compose network.
 
 The supplied stack serves HTTP on the configured host port. Do not expose it directly to the public internet without TLS. A hosted deployment should terminate HTTPS at a trusted platform load balancer, ingress, or reverse proxy and forward traffic to the LifeLenz web gateway.
 
-TLS policy, security headers, rate limiting, abuse controls, and broader production security review are part of subsequent hardening work.
+Rate limiting, abuse controls, TLS policy, certificate automation, and external-edge HSTS remain hosting/operational hardening responsibilities.
+
+## Accessibility hardening
+
+The authentication and authenticated application layouts now provide a keyboard-reachable `Skip to main content` link targeting one explicit `#main-content` landmark. The target is programmatically focusable so keyboard users can bypass repeated navigation.
+
+The real Chromium MVP journey verifies that the skip link is the first keyboard focus target and that activation transfers focus to the main-content landmark in both authentication and authenticated layouts.
+
+This is targeted accessibility hardening, not a formal WCAG conformance claim. Commit 39 release-candidate work should still include final manual keyboard/screen-reader and responsive checks before release.
 
 ## Logs
 
@@ -130,26 +166,30 @@ Uvicorn and Nginx write operational logs to standard output/error for collection
 1. generates fresh masked test-only runtime credentials;
 2. renders the Compose configuration;
 3. builds both production images;
-4. boots the stack with a fresh named volume;
-5. checks gateway liveness and API readiness through the reverse proxy;
-6. verifies a client-side deep route returns the SPA;
-7. registers and logs in a synthetic account through the deployed gateway;
-8. restarts the API process and confirms the same account can still log in from SQLite persistence;
-9. tears down the stack and test volume.
+4. proves unsafe production configuration is rejected;
+5. boots the stack with a fresh named volume;
+6. checks gateway liveness and API readiness through the reverse proxy;
+7. asserts the browser-facing security-header baseline on gateway, API, and SPA responses;
+8. verifies a client-side deep route returns the SPA;
+9. registers and logs in a synthetic account through the deployed gateway;
+10. restarts the API process and confirms the same account can still log in from SQLite persistence;
+11. confirms production API documentation remains disabled;
+12. tears down the stack and test volume.
 
-This validates buildability, process startup, same-origin proxying, basic persistence across an API restart, and the intended single-host topology. It does not replace the existing Chromium Browser E2E journey and does not constitute performance, penetration, disaster-recovery, or multi-host testing.
+This validates buildability, fail-closed configuration, process startup, same-origin proxying, response-header hardening, basic persistence across an API restart, and the intended single-host topology. It does not replace the existing Chromium Browser E2E journey and does not constitute performance, penetration, disaster-recovery, or multi-host testing.
 
 ## Current limitations
 
-Before a public release, LifeLenz still requires the planned hardening milestone. Current deployment limitations include:
+Before a public release, LifeLenz still requires release-candidate validation and hosting-specific operational decisions. Current deployment limitations include:
 
 - single API instance because SQLite is the active durable backend;
 - no automated backup or restore workflow;
 - no encryption-at-rest implementation;
 - no hosted secret-manager integration in this repository;
-- no bundled TLS termination;
+- no bundled TLS termination or HSTS because TLS belongs at the external edge;
 - no formal production monitoring or alerting integration;
 - no rate limiting or abuse-control layer;
+- no formal accessibility certification;
 - no claim of regulatory compliance or medical-device readiness.
 
-The deployment foundation is deliberately conservative: it makes the existing MVP reproducible in a production-shaped runtime without overstating operational maturity.
+The deployment foundation is deliberately conservative: it makes the existing MVP reproducible and more defensive in a production-shaped runtime without overstating operational maturity.
