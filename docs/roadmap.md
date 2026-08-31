@@ -80,20 +80,29 @@ Expose proven application services through product workflows:
 - Real-browser critical MVP journey — implemented
 - Provider-neutral single-host production deployment foundation — implemented
 - MVP production security/configuration and keyboard-navigation hardening — implemented
-- Public-host operational controls and beta release-candidate validation — planned
+- MVP1 beta release-candidate packaging and SQLite recovery validation — implemented
+- Public-host operational controls and final MVP1 release promotion — planned
 
 The production deployment foundation builds separate API and web containers, exposes only the web
 gateway, reverse-proxies same-origin `/api` traffic, persists SQLite in a named volume, and validates
 the stack in CI using a production-shaped Docker Compose smoke test. Because SQLite remains the active
 durable backend, this foundation deliberately supports one API instance per database volume and does
-not claim horizontal scaling, hosted-database failover, automated backups, encryption at rest, TLS
-termination, production monitoring, or public-release readiness.
+not claim horizontal scaling, hosted-database failover, automated off-host backups, encryption at
+rest, TLS termination, production monitoring, or unrestricted public-release readiness.
 
 Commit 38 adds fail-closed production settings for documentation, database paths, and JWT secret
 strength; a browser-facing CSP/security-header baseline at the Nginx gateway; and keyboard skip links
 for both authentication and authenticated application layouts. Deployment CI asserts the hardened
 configuration and response headers, while the real Chromium journey verifies skip navigation in the
 composed application. HSTS remains the responsibility of the trusted external TLS terminator.
+
+Commit 39 establishes candidate `mvp1-0.1.0-rc.1`. A static manifest is checked against the Python and
+npm metadata and the Python 3.13 / Node 22 runtime contracts. CI builds Python and web candidate
+artifacts with SHA-256 checksums and records the exact source SHA. The production image also carries a
+small SQLite maintenance helper. Release Candidate validation creates a backup through SQLite's
+backup API, copies it outside the disposable data volume, destroys that volume, restores the backup
+into a fresh volume while API writers are stopped, and proves the same synthetic account can
+authenticate afterward. The temporary database backup is not retained as a workflow artifact.
 
 The browser E2E journey runs Chromium against a live FastAPI process, isolated SQLite database, and
 built Vite application. It validates registration, authentication, profile onboarding, record

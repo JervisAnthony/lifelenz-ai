@@ -15,6 +15,7 @@ Before creating a beta release candidate:
 - The Node 22 web job must pass linting, formatting, strict TypeScript, unit/component tests, and the production build.
 - The real Chromium Browser E2E journey must pass.
 - Deployment Validation must build and smoke-test the production Compose stack successfully.
+- Release Candidate validation must produce internally consistent candidate metadata, build candidate artifacts, and complete the SQLite backup/restore drill successfully.
 
 ## Production configuration gates
 
@@ -56,6 +57,20 @@ Before exposing a candidate to beta users:
 - define who can access the host, runtime secrets, database volume, and backups;
 - retain an explicit rollback path to the prior known-good application image and compatible database state.
 
+Commit 39 provides and CI-tests the repository's Docker-host SQLite backup/restore procedure. A real beta environment must still choose where exported backups are retained, who can access them, how they are encrypted if required, and how restore/rollback responsibilities are assigned.
+
+## Commit 39 release-candidate evidence
+
+The `mvp1-0.1.0-rc.1` candidate adds three pieces of evidence that were intentionally absent before this milestone:
+
+- a static release manifest validated against Python and npm metadata plus the Python 3.13 / Node 22 runtime contracts;
+- reproducible Python and web candidate artifacts with SHA-256 checksums and source-SHA evidence;
+- an end-to-end SQLite backup/restore drill that destroys the original disposable Compose volume, restores an exported backup into a fresh volume, and proves the same synthetic account can authenticate afterward.
+
+The candidate workflow never uploads the temporary SQLite backup as a retained artifact.
+
+These automated checks establish a reproducible repository release candidate. They do not establish public-host readiness or complete the manual browser/accessibility gates above.
+
 ## Explicit non-claims
 
 Passing this checklist does not establish:
@@ -68,4 +83,4 @@ Passing this checklist does not establish:
 - formal WCAG conformance;
 - production monitoring or incident-response maturity.
 
-Commit 39 should use this checklist as the release-candidate evidence baseline and record any remaining blockers rather than silently waiving them.
+Commit 39 records remaining host-specific and manual blockers rather than silently waiving them. Commit 40 may promote the candidate only after the exact merged candidate state remains green and the final release metadata accurately reflects those limitations.
