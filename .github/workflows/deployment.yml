@@ -1,0 +1,157 @@
+name: Deployment Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-compose:
+    name: Production Compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Generate ephemeral deployment credentials
+        shell: bash
+        run: |
+          jwt_secret="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          account_password="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          echo "::add-mask::$jwt_secret"
+          echo "::add-mask::$account_password"
+          {
+            echo "LIFELENZ_JWT_SECRET=$jwt_secret"
+            echo "LIFELENZ_DEPLOYMENT_SMOKE_PASSWORD=$account_password"
+          } >> "$GITHUB_ENV"
+
+      - name: Validate production Compose contract
+        run: docker compose -f deploy/compose.yml config --quiet
+
+      - name: Build production images
+        run: docker compose -f deploy/compose.yml build --pull
+
+      - name: Start production stack
+        run: docker compose -f deploy/compose.yml up -d
+
+      - name: Smoke-test production stack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          wait_for() {
+            local url="$1"
+            for _ in $(seq 1 90); do
+              if curl --fail --silent --show-error "$url" >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 1
+            done
+            return 1
+          }
+
+          wait_for "http://127.0.0.1:8080/healthz"
+          wait_for "http://127.0.0.1:8080/api/v1/ready"
+
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          base_url = "http://127.0.0.1:8080"
+          password = os.environ["LIFELENZ_DEPLOYMENT_SMOKE_PASSWORD"]
+
+          def get(path: str) -> tuple[bytes, str]:
+              with urllib.request.urlopen(base_url + path, timeout=10) as response:
+                  return response.read(), response.headers.get("content-type", "")
+
+          def post(path: str, payload: dict[str, str]) -> dict[str, object]:
+              request = urllib.request.Request(
+                  base_url + path,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json", "Accept": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  return json.loads(response.read())
+
+          health, _ = get("/healthz")
+          assert health == b"ok\n"
+
+          ready, ready_type = get("/api/v1/ready")
+          assert "application/json" in ready_type
+          ready_payload = json.loads(ready)
+          assert ready_payload["status"] == "ready"
+          assert ready_payload["database"] == "available"
+
+          deep_link, deep_type = get("/app/records")
+          assert "text/html" in deep_type
+          assert b'<div id="root"></div>' in deep_link
+          assert b"<title>LifeLenz</title>" in deep_link
+
+          account = post(
+              "/api/v1/auth/register",
+              {"email": "deployment-smoke@example.com", "password": password},
+          )
+          assert account["email"] == "deployment-smoke@example.com"
+
+          token = post(
+              "/api/v1/auth/login",
+              {"email": "deployment-smoke@example.com", "password": password},
+          )
+          assert token["token_type"] == "bearer"
+          assert isinstance(token["access_token"], str) and token["access_token"]
+          PY
+
+          docker compose -f deploy/compose.yml restart api
+          wait_for "http://127.0.0.1:8080/api/v1/ready"
+
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          password = os.environ["LIFELENZ_DEPLOYMENT_SMOKE_PASSWORD"]
+          request = urllib.request.Request(
+              "http://127.0.0.1:8080/api/v1/auth/login",
+              data=json.dumps(
+                  {"email": "deployment-smoke@example.com", "password": password}
+              ).encode("utf-8"),
+              headers={"Content-Type": "application/json", "Accept": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=10) as response:
+              payload = json.loads(response.read())
+          assert payload["token_type"] == "bearer"
+          assert isinstance(payload["access_token"], str) and payload["access_token"]
+          PY
+
+          docker compose -f deploy/compose.yml exec -T api python - <<'PY'
+          import urllib.error
+          import urllib.request
+
+          try:
+              urllib.request.urlopen("http://127.0.0.1:8000/docs", timeout=5)
+          except urllib.error.HTTPError as error:
+              assert error.code == 404
+          else:
+              raise AssertionError("production API documentation must remain disabled")
+          PY
+
+      - name: Show deployment logs on failure
+        if: failure()
+        run: docker compose -f deploy/compose.yml logs --no-color
+
+      - name: Tear down production stack
+        if: always()
+        run: docker compose -f deploy/compose.yml down -v --remove-orphans

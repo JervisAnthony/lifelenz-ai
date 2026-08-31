@@ -78,7 +78,15 @@ Expose proven application services through product workflows:
 - CSV import web workflow — implemented
 - Baseline-range and mathematical trend visualizations — implemented
 - Real-browser critical MVP journey — implemented
-- Production deployment and release hardening — planned
+- Provider-neutral single-host production deployment foundation — implemented
+- Public-hosting, security, accessibility, operational, and release hardening — planned
+
+The production deployment foundation builds separate API and web containers, exposes only the web
+gateway, reverse-proxies same-origin `/api` traffic, persists SQLite in a named volume, and validates
+the stack in CI using a production-shaped Docker Compose smoke test. Because SQLite remains the active
+durable backend, this foundation deliberately supports one API instance per database volume and does
+not claim horizontal scaling, hosted-database failover, automated backups, encryption at rest, TLS
+termination, production monitoring, or public-release readiness.
 
 The browser E2E journey runs Chromium against a live FastAPI process, isolated SQLite database, and
 built Vite application. It validates registration, authentication, profile onboarding, record
