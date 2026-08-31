@@ -1,0 +1,38 @@
+name: lifelenz
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    image: lifelenz-api:${LIFELENZ_IMAGE_TAG:-local}
+    environment:
+      LIFELENZ_ENVIRONMENT: production
+      LIFELENZ_DATABASE_PATH: /var/lib/lifelenz/lifelenz.db
+      LIFELENZ_DOCS_ENABLED: "false"
+      LIFELENZ_JWT_SECRET: "${LIFELENZ_JWT_SECRET:?LIFELENZ_JWT_SECRET must be set}"
+      LIFELENZ_JWT_ISSUER: "${LIFELENZ_JWT_ISSUER:-lifelenz-api}"
+      LIFELENZ_JWT_AUDIENCE: "${LIFELENZ_JWT_AUDIENCE:-lifelenz-clients}"
+      LIFELENZ_ACCESS_TOKEN_MINUTES: "${LIFELENZ_ACCESS_TOKEN_MINUTES:-30}"
+    volumes:
+      - lifelenz-data:/var/lib/lifelenz
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    image: lifelenz-web:${LIFELENZ_IMAGE_TAG:-local}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${LIFELENZ_HTTP_PORT:-8080}:8080"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 10s
+
+volumes:
+  lifelenz-data:
