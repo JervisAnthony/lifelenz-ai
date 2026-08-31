@@ -15,6 +15,9 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <aside className="sidebar">
         <Brand to="/app" />
         <nav aria-label="Application navigation">
@@ -59,7 +62,7 @@ export function AppShell() {
           <NavLink to="/app/goals">Goals</NavLink>
           <NavLink to="/app/profile">Profile</NavLink>
         </nav>
-        <main className="app-content">
+        <main id="main-content" className="app-content" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

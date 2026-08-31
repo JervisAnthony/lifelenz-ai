@@ -12,6 +12,7 @@ from lifelenz.application import ApplicationError
 from lifelenz.repositories import RepositoryError
 
 TEST_SECRET = "unit-only-secret-material-at-least-32-bytes"
+PRODUCTION_SECRET = "p" * 48
 
 
 def test_default_settings_are_deterministic_and_side_effect_free(tmp_path: Path) -> None:
@@ -59,6 +60,50 @@ def test_process_environment_is_read_only_when_mapping_is_omitted(
     assert load_api_settings({"LIFELENZ_JWT_SECRET": TEST_SECRET}).environment == "development"
 
 
+def test_valid_production_settings_require_explicit_hardened_values(tmp_path: Path) -> None:
+    settings = load_api_settings(
+        {
+            "LIFELENZ_ENVIRONMENT": "Production",
+            "LIFELENZ_DATABASE_PATH": str(tmp_path / "lifelenz.db"),
+            "LIFELENZ_DOCS_ENABLED": "false",
+            "LIFELENZ_JWT_SECRET": PRODUCTION_SECRET,
+        }
+    )
+
+    assert settings.environment == "Production"
+    assert settings.database_path.is_absolute()
+    assert settings.docs_enabled is False
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"LIFELENZ_DOCS_ENABLED": "true"}, "production requires docs_enabled=false"),
+        (
+            {"LIFELENZ_DATABASE_PATH": "relative/lifelenz.db"},
+            "production requires an absolute database_path",
+        ),
+        (
+            {"LIFELENZ_JWT_SECRET": TEST_SECRET},
+            "production jwt_secret must contain at least 48 UTF-8 bytes",
+        ),
+    ],
+)
+def test_unsafe_production_settings_are_rejected(
+    tmp_path: Path, overrides: dict[str, str], message: str
+) -> None:
+    environ = {
+        "LIFELENZ_ENVIRONMENT": "production",
+        "LIFELENZ_DATABASE_PATH": str(tmp_path / "lifelenz.db"),
+        "LIFELENZ_DOCS_ENABLED": "false",
+        "LIFELENZ_JWT_SECRET": PRODUCTION_SECRET,
+        **overrides,
+    }
+
+    with pytest.raises(ApiConfigurationError, match=message):
+        load_api_settings(environ)
+
+
 @pytest.mark.parametrize("value", ["true", "TRUE", "1", "yes", "YES", "on", "On"])
 def test_supported_true_values(value: str) -> None:
     assert (
@@ -84,6 +129,7 @@ def test_supported_false_values(value: str) -> None:
     [
         {"LIFELENZ_ENVIRONMENT": ""},
         {"LIFELENZ_ENVIRONMENT": "   "},
+        {"LIFELENZ_ENVIRONMENT": " production "},
         {"LIFELENZ_DATABASE_PATH": ""},
         {"LIFELENZ_DATABASE_PATH": "  "},
         {"LIFELENZ_DATABASE_PATH": ":memory:"},

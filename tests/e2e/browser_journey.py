@@ -36,11 +36,24 @@ def expect_definition_value(page: Page, label: str, value: str) -> None:
     expect(value_locator).to_have_text(value)
 
 
+def verify_skip_navigation(page: Page) -> None:
+    """Verify the current layout exposes a keyboard-operable main-content skip link."""
+    skip_link = page.get_by_role("link", name="Skip to main content")
+    main_content = page.locator("#main-content")
+    expect(skip_link).to_have_attribute("href", "#main-content")
+    expect(main_content).to_have_count(1)
+    page.keyboard.press("Tab")
+    expect(skip_link).to_be_focused()
+    skip_link.press("Enter")
+    expect(main_content).to_be_focused()
+
+
 def complete_registration_and_profile(page: Page) -> None:
     """Create an account, authenticate it, and complete first-time onboarding."""
     password = account_password()
     page.goto(app_url("/register"))
     expect(page.get_by_role("heading", name="Create your account")).to_be_visible()
+    verify_skip_navigation(page)
     page.get_by_label("Email address").fill(EMAIL)
     page.get_by_label("Password", exact=True).fill(password)
     page.get_by_label("Confirm password").fill(password)
@@ -63,6 +76,7 @@ def exercise_record_lifecycle(page: Page) -> None:
     """Create, correct, and deliberately delete one hydration record."""
     page.goto(app_url("/app/records"))
     expect(page.get_by_role("heading", name="Wellness records", exact=True)).to_be_visible()
+    verify_skip_navigation(page)
     page.get_by_role("button", name=re.compile(r"^Hydration\b")).click()
     page.get_by_label("Volume (milliliters)").fill("500")
     page.get_by_role("button", name="Save hydration record").click()

@@ -5,6 +5,7 @@ import { App } from './App';
 import { AppProviders } from './app/providers';
 import './styles/tokens.css';
 import './styles/global.css';
+import './styles/accessibility.css';
 
 const root = document.getElementById('root');
 if (!root) {

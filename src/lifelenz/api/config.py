@@ -14,6 +14,8 @@ except PackageNotFoundError:  # pragma: no cover - source trees are installed fo
 
 _TRUE_VALUES = frozenset({"true", "1", "yes", "on"})
 _FALSE_VALUES = frozenset({"false", "0", "no", "off"})
+_PRODUCTION_ENVIRONMENT = "production"
+_PRODUCTION_MINIMUM_SECRET_BYTES = 48
 
 
 class ApiConfigurationError(ValueError):
@@ -38,7 +40,9 @@ class ApiSettings:
     def __post_init__(self) -> None:
         _require_nonblank_text(self.application_name, "application_name")
         _require_nonblank_text(self.application_version, "application_version")
-        _require_nonblank_text(self.environment, "environment")
+        environment = _require_nonblank_text(self.environment, "environment")
+        if environment != environment.strip():
+            raise ApiConfigurationError("environment must not contain surrounding whitespace")
         if not isinstance(self.database_path, Path):
             raise ApiConfigurationError("database_path must be a pathlib.Path")
         if str(self.database_path) == ":memory:":
@@ -57,6 +61,23 @@ class ApiSettings:
             raise ApiConfigurationError(
                 "access_token_minutes must be an integer from 5 through 1440"
             )
+        if environment.casefold() == _PRODUCTION_ENVIRONMENT:
+            _validate_production_settings(
+                database_path=self.database_path,
+                docs_enabled=self.docs_enabled,
+                secret_length=secret_length,
+            )
+
+
+def _validate_production_settings(
+    *, database_path: Path, docs_enabled: bool, secret_length: int
+) -> None:
+    if docs_enabled:
+        raise ApiConfigurationError("production requires docs_enabled=false")
+    if not database_path.is_absolute():
+        raise ApiConfigurationError("production requires an absolute database_path")
+    if secret_length < _PRODUCTION_MINIMUM_SECRET_BYTES:
+        raise ApiConfigurationError("production jwt_secret must contain at least 48 UTF-8 bytes")
 
 
 def _require_nonblank_text(value: object, name: str) -> str:

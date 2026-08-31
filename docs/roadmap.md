@@ -79,7 +79,8 @@ Expose proven application services through product workflows:
 - Baseline-range and mathematical trend visualizations — implemented
 - Real-browser critical MVP journey — implemented
 - Provider-neutral single-host production deployment foundation — implemented
-- Public-hosting, security, accessibility, operational, and release hardening — planned
+- MVP production security/configuration and keyboard-navigation hardening — implemented
+- Public-host operational controls and beta release-candidate validation — planned
 
 The production deployment foundation builds separate API and web containers, exposes only the web
 gateway, reverse-proxies same-origin `/api` traffic, persists SQLite in a named volume, and validates
@@ -87,6 +88,12 @@ the stack in CI using a production-shaped Docker Compose smoke test. Because SQL
 durable backend, this foundation deliberately supports one API instance per database volume and does
 not claim horizontal scaling, hosted-database failover, automated backups, encryption at rest, TLS
 termination, production monitoring, or public-release readiness.
+
+Commit 38 adds fail-closed production settings for documentation, database paths, and JWT secret
+strength; a browser-facing CSP/security-header baseline at the Nginx gateway; and keyboard skip links
+for both authentication and authenticated application layouts. Deployment CI asserts the hardened
+configuration and response headers, while the real Chromium journey verifies skip navigation in the
+composed application. HSTS remains the responsibility of the trusted external TLS terminator.
 
 The browser E2E journey runs Chromium against a live FastAPI process, isolated SQLite database, and
 built Vite application. It validates registration, authentication, profile onboarding, record
