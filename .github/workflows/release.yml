@@ -1,32 +1,34 @@
-name: Release Candidate
+name: MVP1 Release
 
 on:
   pull_request:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 concurrency:
-  group: release-candidate-${{ github.workflow }}-${{ github.ref }}
+  group: mvp1-release-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  mvp1-release-candidate:
-    name: MVP1 Release Candidate
+  validate-release:
+    name: MVP1 Release Validation
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    permissions:
+      contents: read
     env:
-      LIFELENZ_IMAGE_TAG: mvp1-0.1.0-rc.1
-      LIFELENZ_RC_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LIFELENZ_IMAGE_TAG: mvp1-0.1.0
+      LIFELENZ_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Check out candidate source
+      - name: Check out release source
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.LIFELENZ_RC_SOURCE_SHA }}
+          ref: ${{ env.LIFELENZ_RELEASE_SOURCE_SHA }}
+          fetch-depth: 0
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v7
@@ -42,7 +44,7 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Generate ephemeral candidate credentials
+      - name: Generate ephemeral release-validation credentials
         shell: bash
         run: |
           jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
@@ -51,10 +53,10 @@ jobs:
           echo "::add-mask::$account_password"
           {
             echo "LIFELENZ_JWT_SECRET=$jwt_secret"
-            echo "LIFELENZ_RC_ACCOUNT_PASSWORD=$account_password"
+            echo "LIFELENZ_RELEASE_ACCOUNT_PASSWORD=$account_password"
           } >> "$GITHUB_ENV"
 
-      - name: Install candidate build tools
+      - name: Install release build tools
         run: |
           python -m pip install --upgrade pip
           python -m pip install build
@@ -63,39 +65,58 @@ jobs:
         working-directory: web
         run: npm ci
 
-      - name: Validate candidate metadata
-        run: |
-          mkdir -p release-artifacts
-          python scripts/validate_release_candidate.py \
-            --evidence-out release-artifacts/release-candidate-evidence.json
-
-      - name: Build Python candidate distributions
-        run: python -m build
-
-      - name: Build web candidate bundle
-        working-directory: web
-        run: npm run build
-
-      - name: Package candidate artifacts
+      - name: Validate release metadata
         shell: bash
         run: |
           set -euo pipefail
-          candidate="$(python -c 'import json; print(json.load(open("release/manifest.json"))["candidate"])')"
-          tar -C web/dist -czf "release-artifacts/lifelenz-web-${candidate}.tar.gz" .
+          mkdir -p release-artifacts
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            python scripts/validate_release.py \
+              --expected-tag "$GITHUB_REF_NAME" \
+              --evidence-out release-artifacts/release-evidence.json
+          else
+            python scripts/validate_release.py \
+              --evidence-out release-artifacts/release-evidence.json
+          fi
+
+      - name: Verify release tag belongs to main history
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Build Python release distributions
+        run: python -m build
+
+      - name: Build web release bundle
+        working-directory: web
+        run: npm run build
+
+      - name: Package release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_name="$(python -c 'import json; print(json.load(open("release/manifest.json"))["release"])')"
+          tar -C web/dist -czf "release-artifacts/lifelenz-web-${release_name}.tar.gz" .
           cp release/manifest.json release-artifacts/manifest.json
+          cp release/RELEASE_NOTES_v0.1.0.md release-artifacts/RELEASE_NOTES_v0.1.0.md
           {
             sha256sum dist/*
-            sha256sum "release-artifacts/lifelenz-web-${candidate}.tar.gz"
+            sha256sum "release-artifacts/lifelenz-web-${release_name}.tar.gz"
             sha256sum release-artifacts/manifest.json
+            sha256sum release-artifacts/release-evidence.json
+            sha256sum release-artifacts/RELEASE_NOTES_v0.1.0.md
           } > release-artifacts/SHA256SUMS
 
-      - name: Build production candidate images
+      - name: Build production release images
         run: docker compose -f deploy/compose.yml build --pull
 
-      - name: Start candidate stack
+      - name: Start release-validation stack
         run: docker compose -f deploy/compose.yml up -d
 
-      - name: Create synthetic persisted candidate account
+      - name: Create synthetic persisted release account
         shell: bash
         run: |
           set -euo pipefail
@@ -119,7 +140,7 @@ jobs:
           import os
           import urllib.request
 
-          password = os.environ["LIFELENZ_RC_ACCOUNT_PASSWORD"]
+          password = os.environ["LIFELENZ_RELEASE_ACCOUNT_PASSWORD"]
           base_url = "http://127.0.0.1:8080"
 
           def post(path: str, payload: dict[str, str]) -> dict[str, object]:
@@ -134,36 +155,36 @@ jobs:
 
           account = post(
               "/api/v1/auth/register",
-              {"email": "release-candidate@example.com", "password": password},
+              {"email": "release-validation@example.com", "password": password},
           )
-          assert account["email"] == "release-candidate@example.com"
+          assert account["email"] == "release-validation@example.com"
 
           token = post(
               "/api/v1/auth/login",
-              {"email": "release-candidate@example.com", "password": password},
+              {"email": "release-validation@example.com", "password": password},
           )
           assert token["token_type"] == "bearer"
           assert isinstance(token["access_token"], str) and token["access_token"]
           PY
 
-      - name: Create and export SQLite candidate backup
+      - name: Create and export SQLite release backup
         shell: bash
         run: |
           set -euo pipefail
           docker compose -f deploy/compose.yml exec -T api \
             python /app/deploy/sqlite_maintenance.py backup \
             --database /var/lib/lifelenz/lifelenz.db \
-            --output /tmp/lifelenz-rc-backup.db
+            --output /tmp/lifelenz-release-backup.db
 
           docker compose -f deploy/compose.yml cp \
-            api:/tmp/lifelenz-rc-backup.db \
-            "$RUNNER_TEMP/lifelenz-rc-backup.db"
+            api:/tmp/lifelenz-release-backup.db \
+            "$RUNNER_TEMP/lifelenz-release-backup.db"
 
           python deploy/sqlite_maintenance.py verify \
-            --database "$RUNNER_TEMP/lifelenz-rc-backup.db"
+            --database "$RUNNER_TEMP/lifelenz-release-backup.db"
 
           docker compose -f deploy/compose.yml exec -T api \
-            rm -f /tmp/lifelenz-rc-backup.db
+            rm -f /tmp/lifelenz-release-backup.db
 
       - name: Restore backup into a fresh data volume
         shell: bash
@@ -174,13 +195,13 @@ jobs:
           docker compose -f deploy/compose.yml run --rm -T \
             -v "$RUNNER_TEMP:/backup:ro" \
             api python /app/deploy/sqlite_maintenance.py restore \
-            --input /backup/lifelenz-rc-backup.db \
+            --input /backup/lifelenz-release-backup.db \
             --database /var/lib/lifelenz/lifelenz.db \
             --confirm-api-stopped
 
           docker compose -f deploy/compose.yml up -d
 
-      - name: Verify restored candidate state
+      - name: Verify restored release state
         shell: bash
         run: |
           set -euo pipefail
@@ -203,11 +224,11 @@ jobs:
           import os
           import urllib.request
 
-          password = os.environ["LIFELENZ_RC_ACCOUNT_PASSWORD"]
+          password = os.environ["LIFELENZ_RELEASE_ACCOUNT_PASSWORD"]
           request = urllib.request.Request(
               "http://127.0.0.1:8080/api/v1/auth/login",
               data=json.dumps(
-                  {"email": "release-candidate@example.com", "password": password}
+                  {"email": "release-validation@example.com", "password": password}
               ).encode("utf-8"),
               headers={"Content-Type": "application/json", "Accept": "application/json"},
               method="POST",
@@ -219,24 +240,57 @@ jobs:
           assert isinstance(payload["access_token"], str) and payload["access_token"]
           PY
 
-          rm -f "$RUNNER_TEMP/lifelenz-rc-backup.db"
+          rm -f "$RUNNER_TEMP/lifelenz-release-backup.db"
 
-      - name: Upload release-candidate artifacts
+      - name: Upload validated release artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: lifelenz-mvp1-0.1.0-rc.1
+          name: lifelenz-mvp1-0.1.0
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
           path: |
             dist/*
             release-artifacts/*
 
-      - name: Show candidate deployment logs on failure
+      - name: Show release deployment logs on failure
         if: failure()
         run: docker compose -f deploy/compose.yml logs --no-color
 
-      - name: Tear down candidate stack
+      - name: Tear down release-validation stack
         if: always()
         run: |
-          rm -f "$RUNNER_TEMP/lifelenz-rc-backup.db"
+          rm -f "$RUNNER_TEMP/lifelenz-release-backup.db"
           docker compose -f deploy/compose.yml down -v --remove-orphans
+
+  publish-release:
+    name: Publish GitHub Release
+    if: github.ref_type == 'tag'
+    needs: validate-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download validated release artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: lifelenz-mvp1-0.1.0
+          path: release-bundle
+
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find release-bundle -type f -print | sort)
+          test "${#files[@]}" -gt 0
+          gh release create "$GITHUB_REF_NAME" \
+            "${files[@]}" \
+            --verify-tag \
+            --title "LifeLenz MVP1 v0.1.0" \
+            --notes-file release/RELEASE_NOTES_v0.1.0.md

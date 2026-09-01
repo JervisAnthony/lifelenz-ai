@@ -1,9 +1,11 @@
 {
   "schema_version": 1,
-  "candidate": "mvp1-0.1.0-rc.1",
+  "release": "mvp1-0.1.0",
+  "release_tag": "v0.1.0",
+  "promoted_from": "mvp1-0.1.0-rc.1",
   "product_version": "0.1.0",
   "release_channel": "beta",
-  "status": "release-candidate",
+  "status": "release",
   "python_runtime": "3.13",
   "python_requires": ">=3.13",
   "node_runtime": "22",
