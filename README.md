@@ -11,43 +11,44 @@ and expose the data and rules behind them.
 
 ## Project status
 
-LifeLenz-AI is at product version `0.1.0`. Commit 39 establishes beta release candidate
-`mvp1-0.1.0-rc.1`; the final MVP1 promotion and repository release/tag decision remain a
-separate Commit 40 step. The repository contains an installable `lifelenz` Python package,
-development tooling, and a controlled taxonomy for wellness categories, metrics, units,
-data sources, confidence, and insight severity. Shared domain foundations provide record
-identifiers, aware time ranges, common metadata, and reusable validation. Concrete domain
-records capture completed sleep sessions, daily activity totals, completed workouts,
-hydration events, meal nutrition, daily nutrition summaries, neutral body measurements,
-and subjective mood, energy, stress, and optional motivation check-ins with explicitly
-validated values. They also capture menstrual bleeding observations, user-supplied
-menstrual-cycle date ranges, privacy-conscious wellness profiles with tracking preferences,
-and user-defined wellness goals.
+LifeLenz-AI is at product version `0.1.0`. Commit 40 promotes the validated
+`mvp1-0.1.0-rc.1` candidate into the first MVP1 repository release,
+`mvp1-0.1.0`, with expected Git tag `v0.1.0`. The release workflow rebuilds and validates
+the exact tagged source before publishing a GitHub Release. Repository release status remains
+separate from public-host production readiness.
 
-Framework-independent repository contracts define storage-neutral operations for profiles,
-goals, and wellness records. Deterministic in-memory implementations support tests and
-application composition. Durable SQLite repositories store profiles, goals, accounts,
-ownership mappings, and wellness records in a local database file using explicit deterministic
-serialization and schema migrations. They preserve typed domain values, canonical units,
-original aware timestamp offsets, and data across repository instances and process restarts.
-The active SQLite persistence is not encrypted by this implementation and deliberately supports
-one API instance per database volume; LifeLenz does not claim horizontal database scaling or
-managed-database failover.
+The repository contains an installable `lifelenz` Python package, development tooling, and a
+controlled taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
+severity. Shared domain foundations provide record identifiers, aware time ranges, common metadata,
+and reusable validation. Concrete domain records capture completed sleep sessions, daily activity
+totals, completed workouts, hydration events, meal nutrition, daily nutrition summaries, neutral
+body measurements, and subjective mood, energy, stress, and optional motivation check-ins with
+explicitly validated values. They also capture menstrual bleeding observations, user-supplied
+menstrual-cycle date ranges, privacy-conscious wellness profiles with tracking preferences, and
+user-defined wellness goals.
 
-Framework-independent application services coordinate repositories, enforce profile existence
-and ownership boundaries, and translate expected missing-entity failures. Deterministic
-personal-baseline analytics summarize supported canonical metrics from a person's own recorded
-observations using count, mean, median, minimum, maximum, and population standard deviation.
-Baselines preserve canonical units and use record metadata timestamps; they provide no medical
-interpretation, population comparison, recommended target, or health classification.
-Deterministic basic trend analytics report first and last values, absolute and percentage change
-when defined, least-squares slope per day, and neutral increasing, decreasing, or stable direction
-for supported canonical metrics. Direction is purely mathematical: increasing does not mean
-healthy, decreasing does not mean unhealthy, and trends neither predict future values nor
-recommend actions. A wellness-summary workflow produces structured canonical-unit summaries from
-stored records. Metrics with at least one sample include a baseline, while metrics with at least
-two samples also include a trend. The result is structured descriptive data, not user-facing
-medical or coaching text.
+Framework-independent repository contracts define storage-neutral operations for profiles, goals,
+and wellness records. Deterministic in-memory implementations support tests and application
+composition. Durable SQLite repositories store profiles, goals, accounts, ownership mappings, and
+wellness records in a local database file using explicit deterministic serialization and schema
+migrations. They preserve typed domain values, canonical units, original aware timestamp offsets,
+and data across repository instances and process restarts. The active SQLite persistence is not
+encrypted by this implementation and deliberately supports one API instance per database volume;
+LifeLenz does not claim horizontal database scaling or managed-database failover.
+
+Framework-independent application services coordinate repositories, enforce profile existence and
+ownership boundaries, and translate expected missing-entity failures. Deterministic personal-baseline
+analytics summarize supported canonical metrics from a person's own recorded observations using
+count, mean, median, minimum, maximum, and population standard deviation. Baselines preserve
+canonical units and use record metadata timestamps; they provide no medical interpretation,
+population comparison, recommended target, or health classification. Deterministic basic trend
+analytics report first and last values, absolute and percentage change when defined, least-squares
+slope per day, and neutral increasing, decreasing, or stable direction for supported canonical
+metrics. Direction is purely mathematical: increasing does not mean healthy, decreasing does not
+mean unhealthy, and trends neither predict future values nor recommend actions. A wellness-summary
+workflow produces structured canonical-unit summaries from stored records. Metrics with at least one
+sample include a baseline, while metrics with at least two samples also include a trend. The result
+is structured descriptive data, not user-facing medical or coaching text.
 
 Framework-independent account identity, Argon2 password hashing, short-lived signed access tokens,
 durable accounts, and explicit profile ownership are implemented. Account registration does not
@@ -55,15 +56,14 @@ create a wellness profile: authentication establishes identity, while a separate
 `UserId -> ProfileId` mapping establishes authorization context. Password reset, email verification,
 MFA, refresh-token rotation, cloud synchronization, correlations, recommendations, predictions,
 direct wearable integrations, vendor-specific wellness export compatibility, notifications,
-production monitoring, mobile applications, and medical decision support remain outside the MVP1
-candidate.
+production monitoring, mobile applications, and medical decision support remain outside MVP1.
 
 LifeLenz-AI includes a versioned FastAPI API with public system metadata, liveness, and
-SQLite-readiness endpoints; account registration and login; bearer-protected current-user
-retrieval; explicit primary-profile onboarding and replacement; owned wellness-record creation,
-listing, retrieval, correction, and deletion for all ten current record types; authenticated CSV
-schema v1 validate/commit ingestion for six stable record categories; wellness-goal management;
-and deterministic structured wellness summaries. Every wellness-resource route requires bearer
+SQLite-readiness endpoints; account registration and login; bearer-protected current-user retrieval;
+explicit primary-profile onboarding and replacement; owned wellness-record creation, listing,
+retrieval, correction, and deletion for all ten current record types; authenticated CSV schema v1
+validate/commit ingestion for six stable record categories; wellness-goal management; and
+deterministic structured wellness summaries. Every wellness-resource route requires bearer
 authentication and resolves ownership from the account; clients cannot choose a profile identifier.
 CSV v1 provides row-level validation, semantic duplicate detection, canonical-unit normalization,
 and `csv_import` provenance. The local SQLite content is not encrypted.
@@ -92,15 +92,15 @@ logout, protected-route redirection, and keyboard skip navigation against live F
 and a built Vite application. A provider-neutral Docker Compose deployment builds separate
 unprivileged API and web containers, exposes only the same-origin web gateway, persists SQLite in a
 named volume, applies a browser-facing security-header baseline, and fails closed on unsafe
-production configuration. Commit 39 adds a tested SQLite backup/verify/restore helper and a release-
-candidate CI drill that destroys the original disposable data volume, restores an exported backup
-into a fresh volume, and proves the same synthetic account can authenticate afterward.
+production configuration. The SQLite maintenance helper provides tested backup, verify, and restore
+operations, and release validation destroys the original disposable data volume, restores an
+exported backup into fresh storage, and proves the same synthetic account can authenticate afterward.
 
-This candidate does **not** claim unrestricted public production readiness. Public HTTPS/HSTS,
+This release does **not** claim unrestricted public production readiness. Public HTTPS/HSTS,
 off-host backup retention and encryption policy, host/secret/database access ownership, production
 monitoring and alerting, rate limiting/abuse controls, formal accessibility certification,
 regulatory compliance, and medical-device readiness remain outside the repository's automated
-release-candidate evidence.
+release evidence.
 
 The MVP1 capability areas are:
 
@@ -111,7 +111,8 @@ The MVP1 capability areas are:
 - deterministic, explainable wellness observations;
 - typed wellness summaries;
 - authenticated browser workflows for entry, history, correction, deletion, CSV import, and goals;
-- a production-shaped single-host deployment with tested SQLite recovery.
+- a production-shaped single-host deployment with tested SQLite recovery;
+- reproducible release artifacts and exact-source release validation.
 
 Direct wearable connections, vendor-specific formats, broad wellness-platform integrations, and
 advanced predictive/recommendation capabilities remain future work.
@@ -125,13 +126,12 @@ rules produce explainable observations; and services coordinate these parts into
 authentication state, TanStack Query server-state orchestration, React Router routes, and lightweight
 CSS design tokens. The backend remains authoritative for identity and wellness data.
 
-See [Architecture](docs/architecture.md) for the intended dependency direction and design
-decisions.
+See [Architecture](docs/architecture.md) for the intended dependency direction and design decisions.
 
 ## Development setup
 
-LifeLenz-AI requires Python 3.13 or later. In Windows PowerShell, create and activate a
-virtual environment, then install the package with development dependencies:
+LifeLenz-AI requires Python 3.13 or later. In Windows PowerShell, create and activate a virtual
+environment, then install the package with development dependencies:
 
 ```powershell
 py -3.13 -m venv lifelenz-env
@@ -181,7 +181,7 @@ npm run test:run
 npm run build
 ```
 
-The current web beta candidate stores its short-lived bearer access token in browser `sessionStorage`
+The current web beta release stores its short-lived bearer access token in browser `sessionStorage`
 through a single storage abstraction. Closing the browser session clears that storage, but
 `sessionStorage` does not eliminate cross-site scripting risk. There are no refresh tokens or
 server-side revocation/logout sessions yet; logout clears client state but cannot revoke an already-
@@ -215,12 +215,12 @@ and the JWT signing secret contains at least 48 UTF-8 bytes. The gateway applies
 browser security headers. HSTS belongs at the trusted external TLS terminator because the bundled
 gateway serves HTTP only.
 
-Commit 39's SQLite maintenance helper provides explicit backup, verification, and restore operations
-using SQLite's backup API plus integrity checks. The release-candidate workflow proves recovery into
-a fresh data volume. This is a tested recovery primitive, not a scheduled/off-host backup service or
-a disaster-recovery guarantee.
+The SQLite maintenance helper provides explicit backup, verification, and restore operations using
+SQLite's backup API plus integrity checks. The release workflow proves recovery into a fresh data
+volume. This is a tested recovery primitive, not a scheduled/off-host backup service or a
+disaster-recovery guarantee.
 
-## Continuous integration
+## Continuous integration and release validation
 
 Pull requests, pushes to `main`, and manual workflow runs use Python 3.13, the runtime declared by
 the project metadata. CI runs Ruff lint and formatting checks, the full pytest suite, an enforced
@@ -234,10 +234,12 @@ pinned Playwright Chromium runtime, and drives the critical synthetic MVP journe
 
 `Deployment Validation` independently builds and boots the production Compose stack, verifies
 production configuration rejection, gateway/API readiness, security headers, authentication,
-SQLite persistence across restart, and disabled production documentation. Commit 39 adds a separate
-`Release Candidate` workflow that validates the static candidate contract, builds candidate artifacts
-and SHA-256 checksums, and proves backup/restore after destruction of the original disposable data
-volume. The temporary SQLite backup used by that workflow is not retained as a CI artifact.
+SQLite persistence across restart, and disabled production documentation. `MVP1 Release Validation`
+validates the final release contract, builds release artifacts and SHA-256 checksums, and proves
+backup/restore after destruction of the original disposable data volume. A tag-triggered run also
+requires the tag to match the manifest and belong to `main` history. Only after validation succeeds
+does a separate tag-only publishing job receive `contents: write` permission and create the GitHub
+Release from the validated artifact bundle. The temporary SQLite backup is not retained.
 
 Dependabot checks Python, GitHub Actions, and npm dependencies under `/web` weekly. GitGuardian
 remains a complementary external secret-scanning check. These automated checks are not a formal
@@ -334,30 +336,25 @@ More contributor guidance is available in [Development standards](docs/developme
 
 ## Documentation
 
-- [Product scope](docs/product-scope.md) defines the intended users, MVP, non-goals, and
-  safety boundary.
+- [Product scope](docs/product-scope.md) defines the intended users, MVP, non-goals, and safety boundary.
 - [Architecture](docs/architecture.md) describes the intended first-phase design.
-- [Development standards](docs/development.md) defines the contributor workflow and
-  engineering expectations.
-- [CSV schema v1](docs/csv-import-v1.md) documents supported categories, exact headers, validation,
-  normalization, and duplicate semantics.
-- [Browser end-to-end validation](docs/browser-e2e.md) documents the isolated Chromium critical-path
-  journey and its CI/local runtime contract.
-- [Production deployment](docs/deployment.md) documents the single-host container topology,
-  production configuration, security headers, and SQLite recovery procedure.
-- [MVP1 beta release candidate](docs/release-candidate.md) documents candidate artifacts, recovery
-  evidence, remaining manual/hosting gates, and Commit 40 promotion rules.
-- [Release readiness](docs/release-readiness.md) defines the minimum evidence and explicit non-claims
-  for MVP1 promotion.
+- [Development standards](docs/development.md) defines the contributor workflow and engineering expectations.
+- [CSV schema v1](docs/csv-import-v1.md) documents supported categories, exact headers, validation, normalization, and duplicate semantics.
+- [Browser end-to-end validation](docs/browser-e2e.md) documents the isolated Chromium critical-path journey and its CI/local runtime contract.
+- [Production deployment](docs/deployment.md) documents the single-host container topology, production configuration, security headers, and SQLite recovery procedure.
+- [MVP1 release](docs/release.md) documents the final release contract, exact-source validation, tag promotion, artifact publication, and public-host boundary.
+- [MVP1 v0.1.0 release notes](release/RELEASE_NOTES_v0.1.0.md) summarize shipped capabilities and known limitations.
+- [MVP1 beta release candidate](docs/release-candidate.md) preserves Commit 39 candidate and recovery evidence as a historical record.
+- [Release readiness](docs/release-readiness.md) defines the minimum evidence and explicit non-claims for MVP1 promotion and external beta hosting.
 - [Roadmap](docs/roadmap.md) separates implemented milestones from future work.
 
 ## Wellness and medical disclaimer
 
-LifeLenz-AI is intended for general wellness reflection and education. It is not a medical
-device and is not intended to diagnose, predict, treat, or prevent disease; recommend
-medications or treatments; provide emergency guidance; or replace qualified medical
-advice. Users should consult an appropriate healthcare professional about medical concerns
-and contact local emergency services when urgent help is needed.
+LifeLenz-AI is intended for general wellness reflection and education. It is not a medical device and
+is not intended to diagnose, predict, treat, or prevent disease; recommend medications or treatments;
+provide emergency guidance; or replace qualified medical advice. Users should consult an appropriate
+healthcare professional about medical concerns and contact local emergency services when urgent help
+is needed.
 
 ## License
 

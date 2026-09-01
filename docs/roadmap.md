@@ -65,9 +65,9 @@ Subjective Wellness Check-In. It does not promise compatibility with every app o
 export format or CSV schema expansion requires a documented schema, fixtures, validation behavior,
 and provenance rules.
 
-## Phase 4 — Product interfaces
+## Phase 4 — Product interfaces and MVP1 release
 
-Expose proven application services through product workflows:
+Expose proven application services through product workflows and promote a reproducible MVP1 release:
 
 - Versioned authenticated REST API — implemented
 - Dashboard for structured summaries and descriptive metric visualizations — implemented
@@ -81,7 +81,8 @@ Expose proven application services through product workflows:
 - Provider-neutral single-host production deployment foundation — implemented
 - MVP production security/configuration and keyboard-navigation hardening — implemented
 - MVP1 beta release-candidate packaging and SQLite recovery validation — implemented
-- Public-host operational controls and final MVP1 release promotion — planned
+- MVP1 v0.1.0 repository release promotion — implemented
+- Public-host operational controls — future work
 
 The production deployment foundation builds separate API and web containers, exposes only the web
 gateway, reverse-proxies same-origin `/api` traffic, persists SQLite in a named volume, and validates
@@ -103,6 +104,12 @@ small SQLite maintenance helper. Release Candidate validation creates a backup t
 backup API, copies it outside the disposable data volume, destroys that volume, restores the backup
 into a fresh volume while API writers are stopped, and proves the same synthetic account can
 authenticate afterward. The temporary database backup is not retained as a workflow artifact.
+
+Commit 40 promotes the validated candidate into release `mvp1-0.1.0` with expected Git tag `v0.1.0`.
+The final release workflow validates the exact source SHA, rebuilds Python and web artifacts, repeats
+the production Compose and destructive SQLite recovery drill, requires a tag-triggered release source
+to belong to `main` history, and publishes the GitHub Release only from the already validated artifact
+bundle. Repository release status remains distinct from public-host readiness.
 
 The browser E2E journey runs Chromium against a live FastAPI process, isolated SQLite database, and
 built Vite application. It validates registration, authentication, profile onboarding, record
