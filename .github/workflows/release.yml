@@ -276,7 +276,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Download validated release artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lifelenz-mvp1-0.1.0
           path: release-bundle
