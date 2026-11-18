@@ -139,6 +139,14 @@ class WellnessRecordRepository(Protocol):
         """
         ...
 
+    def save_batch(self, profile_id: ProfileId, records: tuple[WellnessRecord, ...]) -> None:
+        """Atomically upsert all records under one profile, or preserve all prior state.
+
+        Validate the entire batch before writing. Empty batches are a no-op after
+        profile ID validation. Ownership keys and ordering follow single-record save.
+        """
+        ...
+
     def get(self, profile_id: ProfileId, record_id: RecordId) -> WellnessRecord:
         """Return the exact owned record or raise EntityNotFoundError when absent."""
         ...

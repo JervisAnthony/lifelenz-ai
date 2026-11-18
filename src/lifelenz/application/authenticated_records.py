@@ -31,6 +31,13 @@ class AuthenticatedWellnessRecordService:
         profile = self._profile_service.get_profile(user_id)
         return self._record_service.save_record(profile.profile_id, record)
 
+    def create_records(
+        self, user_id: UserId, records: tuple[WellnessRecord, ...]
+    ) -> tuple[WellnessRecord, ...]:
+        """Resolve primary-profile ownership before atomically saving the batch."""
+        profile = self._profile_service.get_profile(user_id)
+        return self._record_service.save_records(profile.profile_id, records)
+
     def get_record(self, user_id: UserId, record_id: RecordId) -> WellnessRecord:
         profile = self._profile_service.get_profile(user_id)
         return self._record_service.get_record(profile.profile_id, record_id)

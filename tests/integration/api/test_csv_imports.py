@@ -1,4 +1,6 @@
 import asyncio
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import httpx
@@ -209,3 +211,73 @@ def test_csv_import_openapi_is_bearer_protected_and_versioned(tmp_path: Path) ->
         "body_measurement",
         "subjective_check_in",
     }
+
+
+def test_csv_batch_storage_failure_rolls_back_durably_and_retries(tmp_path: Path) -> None:
+    database = tmp_path / "atomic-import.db"
+    app = create_app(settings(database))
+    headers = authorize(app, "atomic-owner@example.com")
+    create_profile(app, headers)
+    other_headers = authorize(app, "atomic-other@example.com")
+    create_profile(app, other_headers)
+    existing = "recorded_at,volume_value\n2026-08-19T10:00:00+05:30,100\n"
+    for owner in (headers, other_headers):
+        assert (
+            request(
+                app,
+                "POST",
+                "/api/v1/imports/csv",
+                headers=owner,
+                json=import_payload(existing, mode="commit"),
+            ).json()["imported_rows"]
+            == 1
+        )
+    before = request(app, "GET", "/api/v1/records", headers=headers).json()
+    other_before = request(app, "GET", "/api/v1/records", headers=other_headers).json()
+    # The second INSERT fails only if the first batch row has already executed.
+    with closing(sqlite3.connect(database)) as connection, connection:
+        connection.execute("""
+            CREATE TRIGGER fail_second_csv_write BEFORE INSERT ON wellness_records
+            WHEN (SELECT count(*) FROM wellness_records) = 3
+            BEGIN SELECT RAISE(ABORT, 'synthetic second-write failure'); END
+        """)
+    content = (
+        "recorded_at,volume_value\n2026-08-20T10:00:00+05:30,200\n2026-08-20T11:00:00+05:30,300\n"
+    )
+    failed = request(
+        app,
+        "POST",
+        "/api/v1/imports/csv",
+        headers=headers,
+        json=import_payload(content, mode="commit"),
+    )
+    assert failed.status_code == 503
+    assert failed.json()["error"]["code"] == "repository_persistence_error"
+    assert "imported_rows" not in failed.json()
+    # A new application/repository and a separate connection see only old state.
+    reopened = create_app(settings(database))
+    assert request(reopened, "GET", "/api/v1/records", headers=headers).json() == before
+    assert request(reopened, "GET", "/api/v1/records", headers=other_headers).json() == other_before
+    with closing(sqlite3.connect(database)) as connection, connection:
+        assert connection.execute("SELECT count(*) FROM wellness_records").fetchone()[0] == 2
+        connection.execute("DROP TRIGGER fail_second_csv_write")
+    retried = request(
+        reopened,
+        "POST",
+        "/api/v1/imports/csv",
+        headers=headers,
+        json=import_payload(content, mode="commit"),
+    )
+    assert retried.status_code == 200
+    assert retried.json()["imported_rows"] == 2
+    repeated = request(
+        reopened,
+        "POST",
+        "/api/v1/imports/csv",
+        headers=headers,
+        json=import_payload(content, mode="commit"),
+    )
+    assert repeated.json()["imported_rows"] == 0
+    assert repeated.json()["duplicate_rows"] == 2
+    assert len(request(reopened, "GET", "/api/v1/records", headers=headers).json()) == 3
+    assert request(reopened, "GET", "/api/v1/records", headers=other_headers).json() == other_before

@@ -503,6 +503,10 @@ class StructuralRecordRepository:
     def save(self, profile_id: ProfileId, record: object) -> None:
         self.stored_record = record
 
+    def save_batch(self, profile_id: ProfileId, records: tuple[object, ...]) -> None:
+        if records:
+            self.stored_record = records[-1]
+
     def get(self, profile_id: ProfileId, record_id: RecordId) -> object:
         return self.stored_record
 

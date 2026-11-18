@@ -174,6 +174,7 @@ def test_wellness_record_type_is_the_explicit_record_class_alias() -> None:
             WellnessRecordRepository,
             {
                 "save",
+                "save_batch",
                 "get",
                 "exists",
                 "list_for_profile",
