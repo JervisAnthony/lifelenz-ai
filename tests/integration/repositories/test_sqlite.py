@@ -4,7 +4,7 @@ import gc
 import json
 import sqlite3
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -670,3 +670,45 @@ def test_existing_application_services_and_summary_workflow_use_reopened_sqlite_
     assert summary.generated_from_record_count == 2
     assert summary.metrics[0].metric is MetricIdentifier.WATER_INTAKE
     assert summary.metrics[0].trend is not None
+
+
+def test_batch_failure_rolls_back_earlier_upsert_and_insert(tmp_path: Path) -> None:
+    database = tmp_path / "atomic-upsert.db"
+    repository = SQLiteWellnessRecordRepository(database)
+    original = hydration("existing", 100)
+    replacement = hydration("existing", 900)
+    first = hydration("new-first", 200)
+    failing = hydration("new-second", 300)
+    repository.save(PROFILE_1, original)
+    repository.save(PROFILE_2, original)
+    with closing(sqlite3.connect(database)) as connection, connection:
+        connection.execute("""
+            CREATE TRIGGER fail_later_write BEFORE INSERT ON wellness_records
+            WHEN NEW.record_id = 'new-second'
+              AND EXISTS (SELECT 1 FROM wellness_records WHERE record_id = 'new-first')
+            BEGIN SELECT RAISE(ABORT, 'synthetic later-write failure'); END
+        """)
+    with pytest.raises(RepositoryPersistenceError) as caught:
+        repository.save_batch(PROFILE_1, (replacement, first, failing))
+    assert isinstance(caught.value.__cause__, sqlite3.IntegrityError)
+    reopened = SQLiteWellnessRecordRepository(database)
+    assert reopened.list_for_profile(PROFILE_1) == (original,)
+    assert reopened.list_for_profile(PROFILE_2) == (original,)
+    with closing(sqlite3.connect(database)) as connection, connection:
+        connection.execute("DROP TRIGGER fail_later_write")
+    reopened.save_batch(PROFILE_1, (replacement, first, failing))
+    assert reopened.get(PROFILE_1, RecordId("existing")) == replacement
+    assert len(reopened.list_for_profile(PROFILE_1)) == 3
+    assert reopened.list_for_profile(PROFILE_2) == (original,)
+
+
+def test_batch_serializes_every_input_before_writing_and_accepts_empty(tmp_path: Path) -> None:
+    repository = SQLiteWellnessRecordRepository(tmp_path / "batch-inputs.db")
+    original = hydration("existing", 100)
+    repository.save(PROFILE_1, original)
+    with pytest.raises(TypeError):
+        repository.save_batch(PROFILE_1, (hydration("existing", 900), object()))
+    repository.save_batch(PROFILE_1, ())
+    assert repository.list_for_profile(PROFILE_1) == (original,)
+    with pytest.raises(TypeError):
+        repository.save_batch("invalid", ())

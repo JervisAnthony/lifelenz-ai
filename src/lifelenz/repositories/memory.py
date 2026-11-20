@@ -175,6 +175,17 @@ class InMemoryWellnessRecordRepository:
             validated_record
         )
 
+    def save_batch(self, profile_id: ProfileId, records: tuple[WellnessRecord, ...]) -> None:
+        """Validate and prepare the complete replacement state before publishing it."""
+        validated_id = _require_profile_id(profile_id)
+        validated_records = tuple(_require_record(record) for record in records)
+        if not validated_records:
+            return
+        updated = self._records.copy()
+        for record in validated_records:
+            updated[(validated_id, record.metadata.record_id)] = record
+        self._records = updated
+
     def get(self, profile_id: ProfileId, record_id: RecordId) -> WellnessRecord:
         """Return the exact owned record or raise EntityNotFoundError."""
         validated_profile_id = _require_profile_id(profile_id)

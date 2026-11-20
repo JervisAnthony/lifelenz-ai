@@ -258,6 +258,10 @@ class ConfigurableRecordRepository:
         self.calls.append(("save", (profile_id, record)))
         self._fail("save")
 
+    def save_batch(self, profile_id: ProfileId, records: tuple[WellnessRecord, ...]) -> None:
+        self.calls.append(("save_batch", (profile_id, records)))
+        self._fail("save_batch")
+
     def get(self, profile_id: ProfileId, record_id: RecordId) -> WellnessRecord:
         self.calls.append(("get", (profile_id, record_id)))
         self._fail("get")
@@ -1043,3 +1047,22 @@ def test_application_public_api_is_exact_sorted_unique_and_isolated() -> None:
     assert not set(expected) & set(lifelenz.repositories.__all__)
     assert len(lifelenz.domain.__all__) == 48
     assert len(lifelenz.repositories.__all__) == 19
+
+
+def test_record_service_batch_validates_all_inputs_and_requires_profile() -> None:
+    profiles = ConfigurableProfileRepository()
+    records = ConfigurableRecordRepository()
+    service = WellnessRecordService(profiles, records)
+    first = _record(HydrationRecord, "first")
+    second = _record(MealRecord, "second")
+    with pytest.raises(ApplicationValidationError):
+        service.save_records(PROFILE_1, (first, object()))
+    assert profiles.calls == records.calls == []
+    assert service.save_records(PROFILE_1, (first, second)) == (first, second)
+    assert records.calls == [("save_batch", (PROFILE_1, (first, second)))]
+    assert service.save_records(PROFILE_1, ()) == ()
+    profiles.present = False
+    records.calls.clear()
+    with pytest.raises(ProfileNotFoundError):
+        service.save_records(PROFILE_1, (first,))
+    assert records.calls == []

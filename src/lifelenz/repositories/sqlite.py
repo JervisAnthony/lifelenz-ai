@@ -553,11 +553,29 @@ class SQLiteWellnessRecordRepository(_SQLiteRepository):
 
     def save(self, profile_id: ProfileId, record: WellnessRecord) -> None:
         """Atomically upsert an exact record under its profile-and-record key."""
+        self.save_batch(profile_id, (record,))
+
+    def save_batch(self, profile_id: ProfileId, records: tuple[WellnessRecord, ...]) -> None:
+        """Serialize all inputs, then upsert with one connection and final commit."""
         validated_profile_id = _require_profile_id(profile_id)
-        record_type, payload = serialize_wellness_record(record)
-        metadata = record.metadata
+        rows = []
+        for record in records:
+            record_type, payload = serialize_wellness_record(record)
+            metadata = record.metadata
+            rows.append(
+                (
+                    validated_profile_id.value,
+                    metadata.record_id.value,
+                    record_type,
+                    metadata.recorded_at.isoformat(),
+                    metadata.recorded_at.timestamp(),
+                    payload,
+                )
+            )
+        if not rows:
+            return
         with self._connection("wellness record save", write=True) as connection:
-            connection.execute(
+            connection.executemany(
                 """
                 INSERT INTO wellness_records(
                     profile_id, record_id, record_type, recorded_at,
@@ -569,14 +587,7 @@ class SQLiteWellnessRecordRepository(_SQLiteRepository):
                     recorded_at_epoch = excluded.recorded_at_epoch,
                     payload = excluded.payload
                 """,
-                (
-                    validated_profile_id.value,
-                    metadata.record_id.value,
-                    record_type,
-                    metadata.recorded_at.isoformat(),
-                    metadata.recorded_at.timestamp(),
-                    payload,
-                ),
+                rows,
             )
 
     def get(self, profile_id: ProfileId, record_id: RecordId) -> WellnessRecord:

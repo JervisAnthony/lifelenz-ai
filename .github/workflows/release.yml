@@ -100,15 +100,23 @@ jobs:
           set -euo pipefail
           release_name="$(python -c 'import json; print(json.load(open("release/manifest.json"))["release"])')"
           tar -C web/dist -czf "release-artifacts/lifelenz-web-${release_name}.tar.gz" .
-          cp release/manifest.json release-artifacts/manifest.json
-          cp release/RELEASE_NOTES_v0.1.0.md release-artifacts/RELEASE_NOTES_v0.1.0.md
-          {
-            sha256sum dist/*
-            sha256sum "release-artifacts/lifelenz-web-${release_name}.tar.gz"
-            sha256sum release-artifacts/manifest.json
-            sha256sum release-artifacts/release-evidence.json
-            sha256sum release-artifacts/RELEASE_NOTES_v0.1.0.md
-          } > release-artifacts/SHA256SUMS
+          python scripts/release_bundle.py package --output release-bundle \
+            dist/* \
+            "release-artifacts/lifelenz-web-${release_name}.tar.gz" \
+            release/manifest.json \
+            release-artifacts/release-evidence.json \
+            release/RELEASE_NOTES_v0.1.0.md
+          python scripts/release_bundle.py verify release-bundle
+          (cd release-bundle && sha256sum -c SHA256SUMS)
+
+      - name: Verify flat download layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          download_dir="$(mktemp -d)"
+          cp release-bundle/* "$download_dir/"
+          python scripts/release_bundle.py verify "$download_dir"
+          (cd "$download_dir" && sha256sum -c SHA256SUMS)
 
       - name: Build production release images
         run: docker compose -f deploy/compose.yml build --pull
@@ -248,9 +256,7 @@ jobs:
           name: lifelenz-mvp1-0.1.0
           if-no-files-found: error
           retention-days: 30
-          path: |
-            dist/*
-            release-artifacts/*
+          path: release-bundle/*
 
       - name: Show release deployment logs on failure
         if: failure()
@@ -275,6 +281,11 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
       - name: Download validated release artifacts
         uses: actions/download-artifact@v7
         with:
@@ -287,10 +298,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t files < <(find release-bundle -type f -print | sort)
-          test "${#files[@]}" -gt 0
+          python scripts/release_bundle.py verify release-bundle
+          (cd release-bundle && sha256sum -c SHA256SUMS)
+          files=(release-bundle/*)
           gh release create "$GITHUB_REF_NAME" \
             "${files[@]}" \
             --verify-tag \
             --title "LifeLenz MVP1 v0.1.0" \
-            --notes-file release/RELEASE_NOTES_v0.1.0.md
+            --notes-file release-bundle/RELEASE_NOTES_v0.1.0.md

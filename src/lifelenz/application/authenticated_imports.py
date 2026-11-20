@@ -108,9 +108,8 @@ class AuthenticatedWellnessCsvImportService:
         can_commit = not parsed.issues
         imported_rows = 0
         if commit and can_commit:
-            for record in ready:
-                self._record_service.create_record(user_id, record)
-                imported_rows += 1
+            self._record_service.create_records(user_id, tuple(ready))
+            imported_rows = len(ready)
 
         return CsvImportReport(
             schema_version=parsed.schema_version,

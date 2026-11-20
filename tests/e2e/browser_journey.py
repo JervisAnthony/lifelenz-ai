@@ -147,7 +147,7 @@ def verify_dashboard_summary(page: Page) -> None:
 def exercise_goal_creation(page: Page) -> None:
     """Create one user-defined goal through the authenticated web workflow."""
     page.goto(app_url("/app/goals"))
-    expect(page.get_by_role("heading", name="Wellness goals")).to_be_visible()
+    expect(page.get_by_role("heading", name="Wellness goals", exact=True)).to_be_visible()
     page.get_by_label("Metric").select_option("water_intake")
     page.get_by_label("Target value").fill("2000")
     page.get_by_label("Status").select_option("active")

@@ -55,14 +55,39 @@ The release bundle contains:
 - release notes;
 - SHA-256 checksums.
 
+Assets are packaged into one canonical flat directory (`release-bundle/`):
+
+```text
+lifelenz_ai-0.1.0-py3-none-any.whl
+lifelenz_ai-0.1.0.tar.gz
+lifelenz-web-mvp1-0.1.0.tar.gz
+manifest.json
+release-evidence.json
+RELEASE_NOTES_v0.1.0.md
+SHA256SUMS
+```
+
+Download all assets into a fresh directory and run from that directory:
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+`SHA256SUMS` lists each payload once using its final filename, in sorted order, and excludes
+itself. To additionally reject extra files, duplicate entries, and unsafe paths, run
+`python /path/to/reviewed/source/scripts/release_bundle.py verify .`.
+The workflow verifies the canonical bundle before upload and tests a fresh flat download
+layout on PR/main runs. The tag-only publishing job verifies the downloaded bundle again,
+then publishes exactly those files without rebuilding or modifying payloads.
+
 The temporary SQLite database used to prove backup and restore is never retained as a release artifact.
 
 ## Release sequence
 
 The intended promotion sequence is:
 
-1. merge the Commit 40 pull request after the required reviews and all exact-head gates pass;
-2. confirm the merged `main` Commit 40 state remains green;
+1. merge the Commit 41 hardening pull request after the required reviews and all exact-head gates pass;
+2. confirm the merged `main` state containing both Commit 41 fixes remains green;
 3. create Git tag `v0.1.0` on that reviewed merged commit;
 4. allow the tag-triggered `MVP1 Release` workflow to rebuild and validate the exact tagged source;
 5. publish the GitHub Release only after release validation succeeds;
