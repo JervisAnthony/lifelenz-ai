@@ -258,6 +258,30 @@ jobs:
           retention-days: 30
           path: release-bundle/*
 
+      - name: Prepare release artifact download directory
+        id: release-artifact-download-dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          download_dir="$(mktemp -d "$RUNNER_TEMP/lifelenz-release-download.XXXXXX")"
+          echo "path=$download_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Download uploaded release artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: lifelenz-mvp1-0.1.0
+          path: ${{ steps.release-artifact-download-dir.outputs.path }}
+
+      - name: Verify uploaded release artifact round trip
+        env:
+          LIFELENZ_RELEASE_DOWNLOAD_DIR: ${{ steps.release-artifact-download-dir.outputs.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "scripts/release_bundle.py" verify "$LIFELENZ_RELEASE_DOWNLOAD_DIR"
+          (cd "$LIFELENZ_RELEASE_DOWNLOAD_DIR" && sha256sum -c "SHA256SUMS")
+          cmp "release-bundle/SHA256SUMS" "$LIFELENZ_RELEASE_DOWNLOAD_DIR/SHA256SUMS"
+
       - name: Show release deployment logs on failure
         if: failure()
         run: docker compose -f deploy/compose.yml logs --no-color
