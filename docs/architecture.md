@@ -1,133 +1,191 @@
 # Architecture
 
-This document describes the intended architecture for LifeLenz-AI's first development
-phase. The repository currently contains only the initial `lifelenz` package foundation;
-the layers and packages below are planned and will be introduced incrementally.
+MVP1 combines a React/TypeScript browser application with an authenticated FastAPI API and
+SQLite persistence. Deterministic analytics produce descriptive baselines, mathematical
+trends, and structured summaries. There is no separate implemented insight-rule engine.
+See [Product scope](product-scope.md) for capability and general-wellness boundaries.
 
-## Architectural goals
+## Runtime request flow
 
-- Strong domain modelling with explicit wellness concepts and invariants
-- Clear separation of responsibilities and dependency direction
-- Testability through small interfaces and deterministic behavior
-- Explainable calculations and observations
-- Deterministic analytics for repeatable results
-- Minimal dependencies and operational complexity
-- Incremental extensibility as real capabilities are implemented
-
-## Initial logical layers
-
-### 1. Domain layer
-
-The domain layer will define wellness records, controlled types, validation rules, personal
-profiles, and goals. It owns the vocabulary and invariants shared by the rest of the system,
-without storage, framework, or user-interface concerns.
-
-### 2. Repository layer
-
-Repository interfaces will describe how validated wellness records are stored and queried.
-An in-memory implementation is planned first to support application behavior and tests.
-Future persistence implementations should conform to the same domain-oriented contracts
-without leaking infrastructure details into domain types.
-
-### 3. Analytics layer
-
-The analytics layer will calculate personal baselines, aggregations, trends, and statistical
-summaries. Calculations should be pure functions where practical, explicit about their input
-windows and missing-data behavior, and deterministic for the same ordered inputs.
-
-### 4. Insight layer
-
-The insight layer will apply deterministic rules to analytics results. Each observation
-should include evidence, relevant periods and comparisons, and confidence and importance
-metadata whose meanings are explicitly defined. Output must use neutral, non-diagnostic
-language and distinguish insufficient evidence from a meaningful result.
-
-### 5. Service layer
-
-Services will coordinate profiles, goals, repositories, analytics, and insight rules. They
-will define application use cases and produce typed wellness summaries without embedding
-domain validation or statistical logic that belongs in lower layers.
-
-## Dependency direction
-
-The intended dependency flow is:
-
-```text
-Services -> Insights / Analytics / Repositories -> Domain
-```
-
-Services may compose the other layers. Insight and analytics code may consume domain types,
-and repository contracts are expressed in domain terms. The domain layer must not depend on
-application services, persistence implementations, external frameworks, or other
-infrastructure. Cross-layer contracts should not introduce reverse dependencies.
-
-## Data flow
+The production-shaped [Compose stack](../deploy/compose.yml) runs two unprivileged containers.
+The Node.js 22 [web build](../deploy/web.Dockerfile) produces Vite assets served by Nginx;
+the Python 3.13 [API image](../deploy/api.Dockerfile) runs FastAPI under Uvicorn.
 
 ```mermaid
 flowchart LR
-    A[Wellness data] --> B[Validated domain records]
-    B --> C[Repository]
-    C --> D[Baseline analytics]
-    D --> E[Explainable insight generation]
-    E --> F[Wellness summary]
+    Browser[React browser app] --> Gateway[Nginx gateway]
+    Gateway --> Assets[Vite static assets and SPA fallback]
+    Gateway -->|same-origin /api requests| API[Internal FastAPI app]
+    API --> Services[Authenticated application services]
+    Services --> Repositories[SQLite repositories]
+    Repositories --> Database[(SQLite volume)]
+    Services --> Analytics[Deterministic analytics for summaries]
 ```
 
-Validation must occur before a record enters a repository. Analytics transforms a defined
-selection of records into baseline and trend results. Insight rules evaluate those results
-and retain evidence needed for the final summary.
+These arrows show runtime requests and calls; responses return to the caller. Only the
+gateway is published to the host, on port `8080` by default. Its
+[Nginx configuration](../deploy/nginx.conf) proxies `/api/` to `api:8000` and serves
+`index.html` for browser routes. The browser uses the same origin without a CORS exception.
+External HTTPS termination and HSTS are operator responsibilities; the bundled gateway
+serves HTTP. Development and preview use the [Vite proxy](../web/vite.config.ts).
 
-## Initial package direction
+The [application factory](../src/lifelenz/api/app.py) constructs settings and a per-app
+[dependency container](../src/lifelenz/api/dependencies.py). HTTP schemas and explicit
+transport mappings translate requests into domain values and results into responses.
+Application services resolve ownership, coordinate repositories, and translate expected
+missing-entity failures. Domain constructors enforce invariants before storage.
 
-The planned package structure is:
+## Packages and source dependencies
 
-```text
-src/lifelenz/
-|-- analytics/
-|-- domain/
-|-- insights/
-|-- repositories/
-`-- services/
+Production Python code uses the `src/lifelenz/` package layout. These are implemented packages:
+
+| Package | Responsibility |
+| --- | --- |
+| [domain](../src/lifelenz/domain/) | Immutable records, profiles, goals, controlled metrics/units, identifiers, aware time ranges, and validation. |
+| [identity](../src/lifelenz/identity/) | Account identity: `UserId`, canonical email addresses, and account values, separate from wellness profiles. |
+| [security](../src/lifelenz/security/) | Argon2 password hashing and fixed-algorithm HS256 access-token issuance/validation. |
+| [repositories](../src/lifelenz/repositories/) | Storage-neutral protocols, in-memory profile/goal/record implementations, SQLite adapters, and explicit serialization. |
+| [analytics](../src/lifelenz/analytics/) | Pure canonical sample extraction, descriptive personal baselines, and mathematical trends. |
+| [ingestion](../src/lifelenz/ingestion/) | CSV v1 parsing, domain validation, unit normalization, and semantic duplicate identity. |
+| [application](../src/lifelenz/application/) | Profile, record, goal, authentication, ownership, CSV, and summary use cases. |
+| [api](../src/lifelenz/api/) | FastAPI routes, configuration, authentication dependencies, transport schemas/mappings, error handling, and composition. |
+
+The following arrows mean **source dependency**, not HTTP traffic or a processing pipeline:
+
+```mermaid
+flowchart TD
+    API[api composition and HTTP boundary] --> Application[application]
+    API --> Repositories[repositories contracts and adapters]
+    API --> Security[security]
+    Application --> Analytics[analytics]
+    Application --> Ingestion[ingestion]
+    Application --> Repositories
+    Ingestion --> Repositories
+    Application --> Domain[domain]
+    Application --> Identity[identity]
+    Analytics --> Domain
+    Ingestion --> Domain
+    Repositories --> Domain
+    Repositories --> Identity
+    Security --> Identity
 ```
 
-This is a direction, not the current filesystem. A package will be created only when its
-first real implementation is added; empty placeholders are intentionally avoided.
+This is a package-level map of principal dependencies, not every import. Application services
+accept [repository contracts](../src/lifelenz/repositories/contracts.py); API composition
+selects SQLite adapters. Authentication orchestration accepts a password-hasher protocol
+instead of importing the concrete security adapter. Domain and identity values do not depend
+on application services, storage, or FastAPI. Analytics performs no repository I/O. CSV parsing
+uses the shared record contract but does not persist records itself.
 
-## Architectural decisions
+## Identity, authorization, and browser state
 
-### Standard-library first
+[Registration](../src/lifelenz/application/authentication.py) creates an account only.
+Separate [profile onboarding](../src/lifelenz/application/authenticated_profile.py) creates
+one primary wellness profile and assigns an explicit `UserId -> ProfileId` ownership mapping.
+Profile preferences contain no authentication credentials.
 
-Use the Python standard library unless an implemented capability has a concrete need that a
-dependency addresses better. This keeps the early model and calculations easy to inspect.
+Bearer-protected dependencies verify token signature, required claims, issuer, audience, and
+expiry, then load the authoritative active account. Authenticated services derive the primary
+profile from ownership; wellness-resource clients cannot choose a profile identifier.
+Record and goal access stays within that profile, with cross-account lookups returning the
+same not-found response as absent resources. Corrections preserve record ID, concrete type,
+and original provenance.
 
-### `src` package layout
+The [React Router configuration](../web/src/app/router.tsx) provides `/`, `/register`, `/login`,
+and protected `/app`, `/app/records`, `/app/records/import`, `/app/goals`, and `/app/profile`.
+Profile guards direct accounts without a profile to onboarding. The
+[authentication provider](../web/src/auth/AuthProvider.tsx) restores identity through
+`/api/v1/auth/me`, stores only the short-lived bearer token in `sessionStorage`, and clears
+client state and the query cache on logout or rejected authentication. Browser storage remains
+exposed to script access; logout does not revoke issued tokens. Refresh tokens, password reset,
+email verification, and MFA are outside the implemented lifecycle.
 
-Production package code remains under `src/lifelenz/`. This prevents accidental imports
-from the repository root and supports testing the installed package shape.
+## Domain and durable storage contracts
 
-### Timezone-aware timestamps
+Domain construction validates controlled types, finite numeric values and allowed ranges,
+canonical-unit compatibility, and record-specific relationships. For example, completed sleep
+and workout periods must have positive duration. [TimeRange](../src/lifelenz/domain/primitives.py)
+uses aware timestamps and start-inclusive/end-exclusive bounds; record filtering and analytics
+use `metadata.recorded_at`, rather than inferring local calendar periods from preferences.
 
-Recorded instants must use timezone-aware datetimes. Local calendar concepts should retain
-the timezone or explicit date context needed to interpret them; ambiguous naive timestamps
-should be rejected at boundaries.
+[SQLite repositories](../src/lifelenz/repositories/sqlite.py) persist profiles, goals, all ten
+record types, accounts, and ownership mappings. Profiles, goals, and records use
+[explicit versioned JSON serialization](../src/lifelenz/repositories/serialization.py), with
+typed reconstruction and domain validation. Accounts and ownership use explicit SQL columns.
+Canonical units and original aware timestamp offsets survive reconstruction; UTC epoch values
+support chronological record filtering and ordering, with record ID as the ordering tie-breaker.
 
-### Value-oriented domain records
+Repository initialization manages `schema_metadata` and the supported migration from schema
+version 1 to 2, adding account/ownership storage. Unsupported schema versions fail rather than
+being silently accepted. Application services enforce profile existence and ownership because
+the storage contracts do not substitute for authorization or provide cascading account deletion.
 
-Domain records should be fully typed and immutable or otherwise value-oriented where
-practical. Construction must enforce invariants so downstream layers can rely on valid data.
+Run **one API instance per SQLite database volume**. The active database is not encrypted by
+this implementation. SQLite transactions and persistence across restarts do not establish
+horizontal scaling, high availability, shared-network storage safety, or managed failover.
 
-### Pure analytics where practical
+## CSV validate, review, and atomic commit
 
-Analytics should receive explicit data and configuration and return typed results without
-hidden state or I/O. This supports reproducible calculations and focused tests.
+The [browser workflow](../web/src/imports/CsvImportWorkflow.tsx) selects a local file, requests
+server validation, shows issues and duplicates, and requires an explicit commit. Both modes
+use authenticated `POST /api/v1/imports/csv`; commit parses and validates the submitted file again.
+CSV v1 supports six categories with canonical-unit normalization and `csv_import` provenance.
+See [CSV schema v1](csv-import-v1.md) for exact headers, limits, and duplicate semantics.
 
-### No premature infrastructure
+The [import service](../src/lifelenz/application/authenticated_imports.py) resolves existing owned
+records through the authenticated record service, skips semantic duplicates, and writes nothing
+in validate mode or when any validation issue exists. Ready rows pass through
+`AuthenticatedWellnessRecordService.create_records`, `WellnessRecordService.save_records`,
+and the repository's `save_batch` contract. SQLite serializes the entire batch before writing
+through one connection and transaction. Storage failure rolls back every batch change, preserves
+pre-existing records, and becomes HTTP 503 without reporting an imported count. A retry skips
+records from an earlier successful import.
 
-The first phase does not introduce an API framework, database, machine-learning stack,
-cloud platform, or wearable integration before a working capability requires it. FastAPI,
-PostgreSQL, LLMs, and wearable APIs are not present components of the current architecture.
+## Server-derived summaries and dashboard
 
-### Explainability before predictive complexity
+[WellnessSummaryService](../src/lifelenz/application/summaries.py) loads owned records and groups
+canonical samples by metric. A baseline needs at least one sample and includes count, mean,
+median, minimum, maximum, and population standard deviation. With at least two samples,
+[trends](../src/lifelenz/analytics/trends.py) add first/last values, absolute change, percentage
+change when the first value is nonzero, least-squares slope per day, and neutral direction.
+Increasing/decreasing/stable describes mathematics without assigning health meaning.
 
-Deterministic, evidence-backed summaries come before forecasting or predictive models. Any
-future advanced technique must have a defined benefit, evaluation method, failure behavior,
-and safe explanation strategy.
+[Sample extraction](../src/lifelenz/analytics/baselines.py) deliberately excludes meal events
+in favor of daily nutrition totals; menstrual records have no numeric mapping. Not every stored
+field becomes a metric. Samples use metadata timestamps without daily regrouping or overlap
+deduplication between workout and daily activity records. The summary record count includes all
+selected records, even those without extractable metrics. No supported samples produces
+`wellness_summary_unavailable`; the browser shows an empty state.
+
+Authenticated `GET /api/v1/summary` supports metric selection and paired aware `start`/`end`
+bounds. The [dashboard](../web/src/pages/DashboardPage.tsx) requests the default summary and
+renders coverage, observed baseline ranges with mean/median markers, and mathematical trend
+details. The response is structured descriptive data, without a historical sample-series
+contract, narrative reports, goal evaluation, correlations, predictions, or recommendations.
+
+TanStack Query owns browser server-state caching. Successful record creation, correction,
+deletion, and CSV commit invalidate record-list/history queries and the summary so subsequent
+reads fetch current server calculations. Goal mutations invalidate goal queries. Profile
+measurement-system, time-zone, and week-start preferences are stored; they do not implement
+summary unit conversion or local-calendar grouping.
+
+## Deployment, recovery, and release boundaries
+
+[Deployment](deployment.md) defines startup configuration, gateway headers, and SQLite
+maintenance. Production settings fail closed unless docs are disabled, the database path is
+absolute, and the signing secret contains at least 48 UTF-8 bytes. The maintenance helper uses
+SQLite backup and integrity checks; restore requires confirmation that API writers are stopped.
+
+[CI](../.github/workflows/ci.yml) checks backend/web behavior, security invariants, package
+integrity, and the [real-browser critical journey](browser-e2e.md). Deployment Validation checks
+the production Compose contract and restart persistence. MVP1 Release Validation separately
+checks metadata, builds flat checksum-verified assets, and proves backup/restore into fresh
+storage after destroying a disposable volume. The tag-only publishing job in
+[release.yml](../.github/workflows/release.yml) verifies and publishes those validated assets.
+See [Release](release.md) for the exact-source and tag contract.
+
+These checks do not establish public-production readiness. External HTTPS/HSTS, off-host backup
+retention/encryption/access policy, host and secret access, monitoring, alerting, incident response,
+and abuse controls remain operator responsibilities under [Release readiness](release-readiness.md).
+PostgreSQL, wearable integrations, ML inference, LLM explanations, and richer evidence-facing
+insight rules remain future work; they are not additional runtime layers in MVP1.

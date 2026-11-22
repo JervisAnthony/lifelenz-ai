@@ -1,6 +1,6 @@
 # Production deployment foundation
 
-Commit 37 introduced a provider-neutral, production-shaped container deployment for LifeLenz. Commit 38 hardened that foundation with fail-closed production configuration, browser-facing security headers, keyboard skip navigation, and additional deployment assertions. Commit 39 adds an operational SQLite backup/verify/restore helper and a destructive CI restore drill for the beta release candidate.
+LifeLenz provides a provider-neutral, production-shaped container deployment with fail-closed configuration, browser-facing security headers, and an operational SQLite backup/verify/restore helper. Deployment and release workflows validate different parts of this single-host foundation; tag-triggered publication is documented in the [MVP1 release guide](release.md).
 
 This remains a single-host MVP deployment foundation, not a claim that LifeLenz is ready for unrestricted public production use. Public TLS termination, monitoring, abuse controls, off-host backup policy, and hosting-specific release decisions remain separate responsibilities.
 
@@ -13,7 +13,9 @@ The Compose stack contains two services:
 
 The web gateway reverse-proxies `/api/*` to the API service and falls back to `index.html` for client-side application routes. This keeps browser API calls same-origin and does not require a CORS exception.
 
-The API stores SQLite data in the named `lifelenz-data` volume at `/var/lib/lifelenz/lifelenz.db`.
+The API stores SQLite data in the named `lifelenz-data` volume at `/var/lib/lifelenz/lifelenz.db`. See the [Compose definition](../deploy/compose.yml), [API Dockerfile](../deploy/api.Dockerfile), [web Dockerfile](../deploy/web.Dockerfile), and [Nginx configuration](../deploy/nginx.conf) for the runtime contract, or [Architecture](architecture.md) for application and persistence boundaries.
+
+Authenticated CSV v1 commit persists all ready rows through the application services in one atomic SQLite batch. Validation errors write nothing; storage failure rolls back the batch and returns HTTP 503 while preserving pre-existing records. This persistence guarantee does not change the single-instance deployment boundary. See [CSV schema v1](csv-import-v1.md) for validation, duplicate, and retry behavior.
 
 ## Important deployment boundary
 
@@ -227,7 +229,7 @@ The authentication and authenticated application layouts provide a keyboard-reac
 
 The real Chromium MVP journey verifies that the skip link is the first keyboard focus target and that activation transfers focus to the main-content landmark in both authentication and authenticated layouts.
 
-This is targeted accessibility hardening, not a formal WCAG conformance claim. The release-candidate checklist still requires final manual keyboard/screen-reader and responsive checks before exposure to beta users.
+This is targeted accessibility hardening, not a formal WCAG conformance claim. The [release-readiness checklist](release-readiness.md#browser-and-accessibility-gates) still requires final manual keyboard/screen-reader and responsive checks before exposure to beta users.
 
 ## Logs
 
@@ -235,7 +237,7 @@ Uvicorn and Nginx write operational logs to standard output/error for collection
 
 ## CI deployment validation
 
-`.github/workflows/deployment.yml` validates the base deployment contract on pull requests, pushes to `main`, and manual runs. The workflow:
+[Deployment Validation](../.github/workflows/deployment.yml) (`.github/workflows/deployment.yml`, job `Production Compose`) validates the deployment contract on pull requests, pushes to `main`, and manual runs. The workflow:
 
 1. generates fresh masked test-only runtime credentials;
 2. renders the Compose configuration;
@@ -250,11 +252,15 @@ Uvicorn and Nginx write operational logs to standard output/error for collection
 11. confirms production API documentation remains disabled;
 12. tears down the stack and test volume.
 
-`.github/workflows/release-candidate.yml` adds the destructive recovery evidence required for the MVP1 beta candidate. It builds candidate artifacts, boots the production images, registers a synthetic account, exports and verifies an SQLite backup, destroys the original named volume, restores into a fresh volume, and proves the same account can authenticate after recovery.
+`MVP1 Release Validation` is a separate job in [MVP1 Release](../.github/workflows/release.yml) (`.github/workflows/release.yml`). It runs on pull requests, pushes to `main`, manual runs, and `v*` tag pushes. It checks the release contract with [validate_release.py](../scripts/validate_release.py), builds Python/web assets, and packages one canonical flat bundle with SHA-256 checksums using [release_bundle.py](../scripts/release_bundle.py). It verifies both the bundle and a fresh flat download layout before uploading release evidence.
 
-The release-candidate workflow never uploads the temporary SQLite database backup as a retained artifact.
+That validation job also boots the production images, registers a synthetic account, exports and verifies an SQLite backup, destroys the original disposable named volume, restores into fresh storage, and proves the same account can authenticate after recovery. It never uploads the temporary SQLite database backup as a retained artifact. This drill proves a specific recovery path; it does not establish recovery of every application workflow or a disaster-recovery guarantee.
 
-Together these workflows validate buildability, fail-closed configuration, process startup, same-origin proxying, response-header hardening, persistence across restart, and a concrete SQLite backup/restore path. They do not constitute performance, penetration, multi-host, or automated disaster-recovery testing.
+`Publish GitHub Release` runs only on a tag-triggered run after release validation succeeds. Tag validation requires a match with the manifest's expected tag and a commit in `main` history. Only this publishing job receives `contents: write`; it downloads the validated flat bundle, verifies the exact file set and checksums again, and attaches those assets without rebuilding payloads. Product version or manifest status alone does not create a tag or a GitHub Release. See [MVP1 release](release.md#release-workflow) and [release assets](release.md#release-artifacts) for the full contract and download-verification commands.
+
+[CI](../.github/workflows/ci.yml), including the [Browser E2E journey](browser-e2e.md), validates backend/web behavior separately. Browser E2E uses live FastAPI, isolated SQLite, and a Vite preview server rather than the production Nginx topology.
+
+Together these workflows provide evidence for buildability, fail-closed configuration, startup, same-origin proxying, response headers, restart persistence, release-asset integrity, and a concrete backup/restore path. They do not constitute performance, penetration, multi-host, or automated disaster-recovery testing, and do not establish unrestricted public-production readiness. The remaining host and human gates are in [Release readiness](release-readiness.md).
 
 ## Current limitations
 
@@ -267,6 +273,7 @@ Before unrestricted public release, hosting-specific operational decisions remai
 - no hosted secret-manager integration in this repository;
 - no bundled TLS termination or HSTS because TLS belongs at the external edge;
 - no formal production monitoring or alerting integration;
+- no repository-provided incident-response service or assigned operational ownership;
 - no rate limiting or abuse-control layer;
 - no formal accessibility certification;
 - no claim of regulatory compliance or medical-device readiness.
