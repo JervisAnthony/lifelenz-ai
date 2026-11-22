@@ -1,0 +1,81 @@
+#!/bin/sh
+set -eu
+
+reject() {
+    printf '%s\n' "LifeLenz Git guard: $1" >&2
+    exit 1
+}
+
+case "$(git rev-parse --show-object-format)" in
+    sha1) zero_oid=0000000000000000000000000000000000000000 ;;
+    sha256) zero_oid=0000000000000000000000000000000000000000000000000000000000000000 ;;
+    *) reject 'Cannot identify the repository object format.' ;;
+esac
+
+valid_oid() {
+    [ "${#1}" -eq "${#zero_oid}" ] || return 1
+    case "$1" in *[!0-9a-f]*) return 1 ;; esac
+}
+
+# Git waits for this hook to validate every update before sending any update.
+while IFS=' ' read -r local_ref local_oid remote_ref remote_oid extra ||
+    [ -n "$local_ref$local_oid$remote_ref$remote_oid$extra" ]; do
+    [ -n "$local_ref" ] && [ -n "$remote_ref" ] && [ -z "$extra" ] ||
+        reject 'Malformed pre-push input: expected four fields.'
+    valid_oid "$local_oid" && valid_oid "$remote_oid" ||
+        reject 'Malformed pre-push object identifiers.'
+    git check-ref-format "$remote_ref" >/dev/null 2>&1 ||
+        reject 'Malformed destination ref.'
+    [ "$remote_ref" != refs/heads/main ] ||
+        reject 'Direct updates and deletions of main are blocked. Publish a feature branch and open a pull request.'
+
+    if [ "$local_ref" = '(delete)' ]; then
+        [ "$local_oid" = "$zero_oid" ] && [ "$remote_oid" != "$zero_oid" ] ||
+            reject 'Malformed deletion input.'
+        case "$remote_ref" in
+            refs/heads/*) continue ;;
+            *) reject 'Only explicit non-main branch deletions are supported.' ;;
+        esac
+    fi
+    [ "$local_oid" != "$zero_oid" ] || reject 'Malformed update input.'
+    resolved_ref=$(git rev-parse --symbolic-full-name --verify "$local_ref") ||
+        reject 'Cannot resolve the pushed source ref.'
+    resolved_oid=$(git rev-parse --verify "$local_ref") ||
+        reject 'Cannot resolve the pushed source object.'
+    [ "$resolved_oid" = "$local_oid" ] || reject 'Pushed source does not match its current object.'
+
+    case "$remote_ref" in
+        refs/heads/*)
+            branch_ref=$(git symbolic-ref --quiet HEAD) ||
+                reject 'Detached HEAD: switch to the feature branch before pushing a branch.'
+            case "$branch_ref" in
+                refs/heads/main) reject 'Branch pushes from main are blocked. Switch to a feature branch.' ;;
+                refs/heads/*) branch=${branch_ref#refs/heads/} ;;
+                *) reject 'Cannot identify the current feature branch.' ;;
+            esac
+            [ "$remote_ref" = "$branch_ref" ] ||
+                reject 'Destination branch mismatch: push only to the current same-named feature branch.'
+            head_oid=$(git rev-parse --verify HEAD) || reject 'Cannot resolve the current HEAD.'
+            [ "$local_oid" = "$head_oid" ] ||
+                reject 'Pushed commit must be the current feature branch HEAD.'
+            # HEAD resolves to the current branch. A raw HEAD object ID is also safe;
+            # another named branch or a tag is not, even at the same commit.
+            if [ "$resolved_ref" != "$branch_ref" ]; then
+                [ -z "$resolved_ref" ] && [ "$local_ref" = "$head_oid" ] ||
+                    reject 'Source mismatch: push the checked-out feature branch, not another branch or tag.'
+            fi
+            if upstream_ref=$(git config --get-all "branch.$branch.merge"); then
+                [ "$upstream_ref" = "$branch_ref" ] ||
+                    reject 'Upstream branch mismatch. Run git branch --unset-upstream, then publish to the same-named feature branch.'
+            else
+                status=$?
+                [ "$status" -eq 1 ] || reject 'Cannot read upstream configuration; no push allowed.'
+            fi
+            ;;
+        refs/tags/*)
+            [ "$resolved_ref" = "$remote_ref" ] ||
+                reject 'Tag pushes require the same-named local tag; branch/tag ref confusion is blocked.'
+            ;;
+        *) reject 'Only same-named feature branches and tags are supported.' ;;
+    esac
+done

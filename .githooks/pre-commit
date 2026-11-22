@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+reject() {
+    printf '%s\n' "LifeLenz Git guard: $1" >&2
+    exit 1
+}
+
+branch_ref=$(git symbolic-ref --quiet HEAD) ||
+    reject 'Detached HEAD: switch to a purpose-specific feature branch before committing.'
+case "$branch_ref" in
+    refs/heads/main) reject 'Commits on main are blocked. Create/switch to a purpose-specific feature branch.' ;;
+    refs/heads/*) branch=${branch_ref#refs/heads/} ;;
+    *) reject 'Cannot identify the current feature branch.' ;;
+esac
+
+if upstream_ref=$(git config --get-all "branch.$branch.merge"); then
+    [ "$upstream_ref" = "$branch_ref" ] ||
+        reject 'Upstream branch mismatch. Run git branch --unset-upstream, then publish to the same-named feature branch.'
+else
+    status=$?
+    [ "$status" -eq 1 ] || reject 'Cannot read upstream configuration; no commit allowed.'
+fi
