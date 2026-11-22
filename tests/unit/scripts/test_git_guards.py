@@ -432,6 +432,29 @@ def test_malformed_push_input_rejected(guarded: Repository, fault: str) -> None:
     assert result.returncode != 0 and "LifeLenz Git guard:" in result.stderr
 
 
+@pytest.mark.parametrize("name", ["pre-commit", "pre-push"])
+def test_actual_repository_hook_is_executable(name: str) -> None:
+    """Inspect the real checkout and index without repairing either one."""
+    path = f".githooks/{name}"
+    result = subprocess.run(
+        ["git", "ls-files", "--stage", "--", path],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    entries = result.stdout.splitlines()
+    assert len(entries) == 1, f"Expected one tracked index entry for {path}"
+    metadata, indexed_path = entries[0].split("\t", 1)
+    mode, _object_id, stage = metadata.split()
+    assert indexed_path == path and stage == "0"
+    assert mode == "100755", f"{path} must be executable in the actual repository index"
+    hook = ROOT / path
+    assert hook.is_file()
+    if os.name == "posix":
+        assert os.access(hook, os.X_OK), f"{path} must be executable in the POSIX checkout"
+
+
 def test_hook_modes_lf_checkout_and_syntax(repository: Repository) -> None:
     repo = repository
     for name in ("pre-commit", "pre-push"):
