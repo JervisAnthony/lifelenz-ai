@@ -177,3 +177,9 @@ choose a profile identifier.
 
 CSV v1 is a general-wellness data-ingestion format. It performs no diagnosis, target comparison,
 health scoring, recommendation generation, or medical interpretation.
+
+A committed file saves all ready rows in one atomic batch. If storage fails, the API returns
+HTTP 503 using the existing persistence-error response; every change in that batch is rolled
+back and pre-existing records remain unchanged. No imported count is reported for a failed
+batch. Retrying the same file after storage recovers is safe: semantic duplicate detection
+still skips records already saved by an earlier successful import. Validate mode remains read-only.

@@ -754,3 +754,23 @@ def test_repository_public_api_contains_only_expected_exports() -> None:
     assert (
         lifelenz.repositories.InMemoryWellnessRecordRepository is InMemoryWellnessRecordRepository
     )
+
+
+def test_memory_batch_is_atomic_on_invalid_later_input_and_profile_scoped() -> None:
+    repository = InMemoryWellnessRecordRepository()
+    original = _record(HydrationRecord, "existing")
+    replacement = _record(MealRecord, "existing")
+    new = _record(HydrationRecord, "new")
+    repository.save(PROFILE_1, original)
+    repository.save(PROFILE_2, original)
+    with pytest.raises(TypeError):
+        repository.save_batch(PROFILE_1, (replacement, new, object()))
+    assert repository.list_for_profile(PROFILE_1) == (original,)
+    repository.save_batch(PROFILE_1, ())
+    assert repository.list_for_profile(PROFILE_1) == (original,)
+    with pytest.raises(TypeError):
+        repository.save_batch("invalid", ())
+    repository.save_batch(PROFILE_1, (replacement, new))
+    assert repository.get(PROFILE_1, RecordId("existing")) is replacement
+    assert repository.get(PROFILE_1, RecordId("new")) is new
+    assert repository.list_for_profile(PROFILE_2) == (original,)

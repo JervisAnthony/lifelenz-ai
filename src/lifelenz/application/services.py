@@ -44,6 +44,7 @@ _GOAL_REPOSITORY_SHAPE: _RepositoryShape = (
     ("remove", ("goal_id",)),
 )
 _RECORD_REPOSITORY_SHAPE: _RepositoryShape = (
+    ("save_batch", ("profile_id", "records")),
     ("save", ("profile_id", "record")),
     ("get", ("profile_id", "record_id")),
     ("exists", ("profile_id", "record_id")),
@@ -315,6 +316,16 @@ class WellnessRecordService:
                 validated_record.metadata.record_id,
             ) from error
         return validated_record
+
+    def save_records(
+        self, profile_id: ProfileId, records: tuple[WellnessRecord, ...]
+    ) -> tuple[WellnessRecord, ...]:
+        """Require the owner and validate all records before one atomic batch save."""
+        validated_id = _require_profile_id(profile_id)
+        validated_records = tuple(_require_record(record) for record in records)
+        _require_profile(self._profile_repository, validated_id)
+        self._record_repository.save_batch(validated_id, validated_records)
+        return validated_records
 
     def get_record(self, profile_id: ProfileId, record_id: RecordId) -> WellnessRecord:
         """Require the profile and return the exact owned record, translating absence."""
