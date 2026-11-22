@@ -1,128 +1,147 @@
 # Product scope
 
-## Product vision
+## Product vision and intended users
 
-LifeLenz-AI aims to help people understand personal wellness patterns using their own
-longitudinal lifestyle data. It will organize records over time, establish individual
-baselines, and turn measured changes into explainable observations. The product is intended
-to support reflection and informed habit tracking, not clinical interpretation.
+LifeLenz-AI helps people organize personal lifestyle records and inspect descriptive patterns
+in their own data. MVP1 is a beta-stage general-wellness product for manual tracking, deliberate
+CSV imports, personal baselines, and self-reflection. The longer-term vision includes richer
+explainable observations across longitudinal data; those capabilities require separate design
+and evaluation and are not all implemented.
 
-## Problem statement
+Initial users include people who track habits, consolidate structured records, or want to
+review personal trends. MVP1 does not promise every device, vendor export, or tracking workflow.
 
-Personal wellness data is often difficult to use effectively:
+## Implemented MVP1 capabilities
 
-- Records are fragmented across apps, devices, spreadsheets, and notes.
-- Individual metrics are presented without enough historical or cross-category context.
-- Generic targets and advice may not reflect a person's usual range or goals.
-- It is difficult to inspect how sleep, activity, hydration, mood, energy, and stress vary
-  together over time.
-- Automated observations often do not expose the evidence or reasoning behind them.
+| Capability | Implemented behavior | Boundary |
+| --- | --- | --- |
+| Accounts | Registration, login, current-user restoration, and protected browser routes. | Registration creates an account only; no password reset, email verification, MFA, or refresh tokens. |
+| Profile onboarding and preferences | Separate creation of one primary owned profile; review and replacement of display name, time zone, measurement system, week start, and tracked areas. | Presentation/grouping preferences are stored; summary unit conversion and profile-based calendar grouping are not implemented. |
+| Manual records | Entry, recent/full history, record-type/date filtering, correction, and confirmed deletion for all ten types below. | Corrections retain identity, type, and original source; record deletion is not account deletion or complete data export. |
+| CSV v1 | Local file selection, authenticated validation, issue/duplicate review, and explicit atomic commit for six categories. | Exact versioned schema; no universal vendor-export compatibility. |
+| User-defined goals | List, create, read, fully replace, change status, and confirm deletion. | Targets, direction, dates, and status are user-supplied; progress and achievement are not evaluated. |
+| Personal analytics | Canonical samples, descriptive baselines, mathematical trends, and typed structured summaries. | No health scoring, target comparison, cross-metric correlation, prediction, recommendation, or narrative report. |
+| Dashboard | Server-derived coverage, baseline ranges with mean/median markers, and trend details; explicit empty/error states. | No historical sample-series visualization contract or invented time-series points. |
 
-LifeLenz-AI is intended to provide a coherent, personal-baseline-first view while keeping
-the source data and calculation logic visible.
+The [browser routes](../web/src/app/router.tsx) expose Home (`/app`), Records (`/app/records`),
+CSV import (`/app/records/import`), Goals (`/app/goals`), and Profile (`/app/profile`) after
+authentication. Profile onboarding is required before records, goals, imports, and summaries.
 
-## Intended users
+### Records and CSV categories
 
-Initial users may include:
+The [record contracts](../src/lifelenz/repositories/contracts.py) and
+[manual form registry](../web/src/records/recordEntryRegistry.ts) cover:
 
-- People who already track lifestyle habits
-- Fitness and wellness enthusiasts interested in longer-term patterns
-- People consolidating manually recorded or exported wellness data
-- People interested in personal trends and self-reflection rather than clinical diagnosis
+| Record type | Manual entry/history/correction/deletion | CSV v1 |
+| --- | --- | --- |
+| Sleep | Yes | Yes |
+| Daily Activity | Yes | Yes |
+| Workout | Yes | No |
+| Hydration | Yes | Yes |
+| Meal | Yes | No |
+| Daily Nutrition | Yes | Yes |
+| Body Measurement | Yes | Yes |
+| Subjective Wellness Check-In | Yes | Yes |
+| Menstrual Bleeding | Yes | No |
+| Menstrual Cycle | Yes | No |
 
-These groups describe likely use cases, not a fixed commercial demographic or a claim that
-the product currently serves every tracking workflow.
+Records preserve explicitly supplied values, aware metadata timestamps, and source provenance.
+Check-ins capture mood, energy, stress, and optional motivation; cycle dates remain user-supplied,
+without cycle or fertility prediction. Date filtering uses metadata timestamps with
+start-inclusive/end-exclusive bounds. Browser-local datetimes are sent with an explicit offset;
+the saved profile time zone does not override that browser-local input behavior.
 
-## Initial user scenarios
+[CSV schema v1](csv-import-v1.md) defines exact headers and supported normalization. Each file
+contains one category. Validation never writes records; any validation issue prevents commit.
+Semantic duplicates against existing owned records or earlier file rows are skipped separately
+from errors. Commit saves all ready rows in one atomic batch: storage failure leaves prior data
+unchanged and returns HTTP 503. See the
+[authenticated import service](../src/lifelenz/application/authenticated_imports.py) and
+[architecture flow](architecture.md#csv-validate-review-and-atomic-commit).
 
-The MVP is intended to support scenarios such as:
+### Analytics and summaries
 
-- Reviewing whether recent sleep duration is below the user's established baseline
-- Understanding whether activity has been consistent across recent weeks
-- Comparing recorded hydration with a user-defined personal goal
-- Observing whether recorded higher-energy days also contain better sleep measurements,
-  without claiming that one caused the other
-- Producing a weekly wellness summary whose observations link back to measurements,
-  calculations, and deterministic rules
+[Personal baselines](../src/lifelenz/analytics/baselines.py) describe a person's own recorded
+samples using count, mean, median, minimum, maximum, and population standard deviation.
+One sample is sufficient for a baseline, with standard deviation zero; this is not evidence
+of a stable habitual range or clinical significance. At least two samples produce a
+[mathematical trend](../src/lifelenz/analytics/trends.py): first/last values, absolute change,
+percentage change when defined, least-squares slope per day, and neutral direction.
 
-These observations describe associations, differences, and trends in the available data.
-They must not imply causation or clinical significance.
+[Structured summaries](../src/lifelenz/application/summaries.py) assemble supported metrics in
+canonical units. Meal events are excluded in favor of daily nutrition totals; menstrual records
+have no direct numeric mapping. Optional motivation and other stored fields do not automatically
+become analytics metrics. Samples use record metadata timestamps, without calendar aggregation
+or reconciliation of overlapping daily-activity and workout observations. Summary record counts
+can include records that contribute no metric. No supported observations yields an unavailable
+summary and a browser empty state.
 
-## MVP scope
+The [dashboard](../web/src/pages/DashboardPage.tsx) shows the server's summary coverage, observed
+ranges, mean/median, and trend details. Successful record mutations and CSV imports invalidate
+record and summary queries so later dashboard reads retrieve current data. Goals are managed
+separately; marking a goal completed records the user's choice rather than measured achievement.
+Stored imperial/metric and week-start preferences do not convert summaries or create weekly views.
 
-The first viable product is planned to include:
+## Privacy and security already implemented
 
-- Manually entered or imported structured wellness records
-- Sleep records
-- Activity records
-- Hydration records
-- Basic nutrition records
-- Body measurements
-- Mood, energy, and stress records
-- Personal profiles and goals
-- Personal-baseline analytics
-- Trend and statistical summaries
-- Deterministic, explainable insights
-- Wellness summaries
+[Authentication](../src/lifelenz/application/authentication.py) validates passwords of 12 through
+256 characters; [security adapters](../src/lifelenz/security/) hash passwords with Argon2 and
+issue short-lived signed HS256 bearer tokens. Validation checks signature, required claims,
+issuer, audience, and expiry, then resolves the authoritative active account. An explicit
+[ownership mapping](../src/lifelenz/application/ownership.py) scopes wellness operations to the
+authenticated primary profile. Clients cannot choose another profile ID, and cross-account
+record/goal lookups return not-found without exposing resource existence.
 
-Data import in this scope means support for explicitly defined structured formats. It does
-not imply automatic compatibility with every external platform.
+The browser stores its access token in `sessionStorage`; script access remains a risk. Logout
+clears client authentication and query state without server-side revocation of issued tokens.
+The default token lifetime is 30 minutes. There is no refresh-token rotation, password-reset,
+email-verification, MFA, or social-login workflow.
 
-## Explicit non-goals
+[Production configuration](../src/lifelenz/api/config.py) requires disabled API docs, an absolute
+SQLite path, and a signing secret of at least 48 UTF-8 bytes. The same-origin gateway applies
+CSP and related browser headers. These are implemented controls, not a comprehensive security
+or regulatory certification. Active SQLite storage is not encrypted by this implementation.
+External HTTPS/HSTS, access policy, off-host backup encryption/retention, monitoring, incident
+response, and abuse controls remain [deployment responsibilities](deployment.md#current-limitations).
 
-The initial product will not provide:
+Users can correct and delete individual records and goals. MVP1 does not implement account
+deletion, a complete personal-data export workflow, or a comprehensive retention/erasure service.
+The operator's database backup helper is not a user-facing export feature.
 
-- Medical diagnosis or disease prediction
-- Medication advice or treatment plans
-- Emergency guidance
-- Clinical decision support
-- Direct wearable integrations in the first milestone
-- Automated ingestion from every wellness platform
-- Causal health claims based on observed associations
-- A replacement for advice from qualified healthcare professionals
+## Future direction and explicit non-goals
 
-## Safety boundary
+The [roadmap](roadmap.md) describes longer-term direction. Its partially implemented insight
+milestone refers to structured summaries; MVP1 has no separate insight-rule engine. Future work
+includes:
 
-LifeLenz-AI operates on the general-wellness side of a clear boundary. It may summarize
-user-provided lifestyle records, compare them with the same user's history or goals, and
-describe non-causal patterns. For example, it may state that recorded sleep was lower than
-a personal baseline during a selected period and show how that result was calculated.
+- automatic goal-progress evaluation, target comparison, or achievement detection;
+- cross-metric correlations or observations about co-occurring patterns;
+- weekly narrative reports and richer evidence-facing insight rules;
+- historical time-series contracts and visualizations;
+- forecasting, recommendations, ML inference, or LLM explanations;
+- direct wearable integrations, selected vendor adapters, and broader export compatibility.
 
-It must not interpret a pattern as a symptom, assign a diagnosis, estimate disease risk,
-recommend medication or treatment, or tell a user how to handle an emergency. Wellness
-output should use neutral language and direct medical questions to qualified professionals.
-Urgent situations require appropriate local emergency services, not product output.
+For example, comparing hydration against a goal, associating energy with sleep, or generating a
+weekly narrative are future scenarios. The current product stores those inputs and describes
+supported metrics independently. Correlations would not establish causation; causal observations
+are not an implemented capability or an intended health claim.
 
-## Product principles
+Medical diagnosis, disease prediction, treatment or medication advice, emergency guidance,
+clinical decision support, and replacing qualified medical care are explicit non-goals.
+Cloud synchronization, notifications, and native mobile applications remain outside MVP1.
 
-### Personal-baseline first
+## Safety boundary and product principles
 
-Prefer comparisons with a person's own sufficient history and stated goals over generic
-population thresholds. Clearly identify when there is not enough data for a useful baseline.
+LifeLenz-AI supports general-wellness reflection and education. Descriptive statistics and
+increasing/decreasing/stable trends do not classify health, imply causation, or recommend action.
+User-defined targets are not assessed for suitability. Sparse or incomplete data must remain
+visible rather than being turned into medical or coaching conclusions.
 
-### Explainability by design
+Prefer inspectable calculations, explicit ownership, minimal necessary data, conservative
+language, and deliberate correction/deletion controls. Future observations must expose their
+supporting evidence, period, calculation/rule, and uncertainty before more complex techniques
+are adopted. These principles do not imply features beyond the implemented table above.
 
-Every generated observation should identify its supporting data, period, calculation or
-rule, and relevant uncertainty. An unexplained conclusion is not an acceptable insight.
-
-### Privacy-aware architecture
-
-Minimize the data required for each capability, keep ownership boundaries explicit, and
-make future storage and retention choices deliberate. These are design requirements; the
-current foundation does not yet claim implemented privacy or security controls.
-
-### Conservative language
-
-Describe what the records support. Avoid causal, diagnostic, prescriptive, or alarmist
-wording, especially when data is sparse or incomplete.
-
-### Progressive complexity
-
-Begin with validated records, deterministic calculations, and testable rules. Add more
-complex techniques only when they solve a demonstrated problem and can be evaluated safely.
-
-### User-controlled data
-
-Users should be able to understand what data is used and control future input, correction,
-export, and deletion workflows. Those controls will be specified alongside the interfaces
-and persistence mechanisms that implement them.
+Medical questions belong with qualified healthcare professionals. Urgent situations require
+appropriate local emergency services, not product output. Repository release validation also
+does not establish public-host readiness; see [Release readiness](release-readiness.md).

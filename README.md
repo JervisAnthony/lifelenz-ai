@@ -1,132 +1,67 @@
 # LifeLenz-AI
 
-LifeLenz-AI is a beta-stage personal wellness intelligence project. It is intended to
-help people organize longitudinal lifestyle data, understand patterns relative to their
-own baselines, and receive transparent, non-diagnostic observations.
-
-The core value proposition is context: instead of treating sleep, activity, hydration,
-mood, energy, and stress as isolated readings, LifeLenz-AI aims to make changes and
-co-occurring patterns understandable over time. Observations use conservative language
-and expose the data and rules behind them.
+LifeLenz-AI is a beta-stage personal wellness application for organizing lifestyle records
+and reviewing descriptive patterns in a person's own data. MVP1 provides deterministic
+personal baselines, mathematical trends, and structured summaries for general-wellness
+reflection. It does not generate medical advice, predictions, or recommendations.
 
 ## Project status
 
-LifeLenz-AI is at product version `0.1.0`. Commit 40 promotes the validated
-`mvp1-0.1.0-rc.1` candidate into the first MVP1 repository release,
-`mvp1-0.1.0`, with expected Git tag `v0.1.0`. The release workflow rebuilds and validates
-the exact tagged source before publishing a GitHub Release. Repository release status remains
-separate from public-host production readiness.
+Product metadata declares version `0.1.0`, release identifier `mvp1-0.1.0`, and expected tag
+`v0.1.0`, promoted from candidate `mvp1-0.1.0-rc.1`. These values describe the repository's
+release contract; they do not establish that a Git tag or published GitHub Release exists.
+Publication is the tag-triggered process in [MVP1 release](docs/release.md): validate the exact
+tagged source and publish its verified assets only after validation succeeds. Repository
+release status remains separate from public-host production readiness.
 
-The repository contains an installable `lifelenz` Python package, development tooling, and a
-controlled taxonomy for wellness categories, metrics, units, data sources, confidence, and insight
-severity. Shared domain foundations provide record identifiers, aware time ranges, common metadata,
-and reusable validation. Concrete domain records capture completed sleep sessions, daily activity
-totals, completed workouts, hydration events, meal nutrition, daily nutrition summaries, neutral
-body measurements, and subjective mood, energy, stress, and optional motivation check-ins with
-explicitly validated values. They also capture menstrual bleeding observations, user-supplied
-menstrual-cycle date ranges, privacy-conscious wellness profiles with tracking preferences, and
-user-defined wellness goals.
+The implemented MVP1 includes:
 
-Framework-independent repository contracts define storage-neutral operations for profiles, goals,
-and wellness records. Deterministic in-memory implementations support tests and application
-composition. Durable SQLite repositories store profiles, goals, accounts, ownership mappings, and
-wellness records in a local database file using explicit deterministic serialization and schema
-migrations. They preserve typed domain values, canonical units, original aware timestamp offsets,
-and data across repository instances and process restarts. The active SQLite persistence is not
-encrypted by this implementation and deliberately supports one API instance per database volume;
-LifeLenz does not claim horizontal database scaling or managed-database failover.
+- accounts with Argon2 password hashing, short-lived signed bearer tokens, separate primary-profile
+  onboarding, explicit ownership, and editable profile preferences;
+- manual entry, recent/full history, type/date filtering, correction, and confirmed deletion for
+  Sleep, Daily Activity, Workout, Hydration, Meal, Daily Nutrition, Body Measurement, Subjective
+  Wellness Check-In, Menstrual Bleeding, and Menstrual Cycle;
+- CSV v1 validate/review/commit for Sleep, Daily Activity, Hydration, Daily Nutrition, Body
+  Measurement, and Subjective Wellness Check-In, with normalization and semantic duplicate detection;
+- user-defined goal creation, replacement, status changes, and deletion, without automatic progress
+  evaluation or target comparison;
+- server-derived canonical-unit baselines and trends, with dashboard coverage, observed ranges,
+  mean/median markers, and mathematical change; no historical sample-series contract is provided;
+- durable SQLite storage, a same-origin container deployment, tested backup/restore primitives,
+  and reproducible release packaging and validation.
 
-Framework-independent application services coordinate repositories, enforce profile existence and
-ownership boundaries, and translate expected missing-entity failures. Deterministic personal-baseline
-analytics summarize supported canonical metrics from a person's own recorded observations using
-count, mean, median, minimum, maximum, and population standard deviation. Baselines preserve
-canonical units and use record metadata timestamps; they provide no medical interpretation,
-population comparison, recommended target, or health classification. Deterministic basic trend
-analytics report first and last values, absolute and percentage change when defined, least-squares
-slope per day, and neutral increasing, decreasing, or stable direction for supported canonical
-metrics. Direction is purely mathematical: increasing does not mean healthy, decreasing does not
-mean unhealthy, and trends neither predict future values nor recommend actions. A wellness-summary
-workflow produces structured canonical-unit summaries from stored records. Metrics with at least one
-sample include a baseline, while metrics with at least two samples also include a trend. The result
-is structured descriptive data, not user-facing medical or coaching text.
+Commit 41 hardening makes CSV persistence atomic: all ready rows pass through authenticated
+application services into one batch, and storage failure rolls back every batch change. Release
+assets use one flat directory with SHA-256 checksums verified before upload and again before
+publication. See [CSV v1](docs/csv-import-v1.md) and [release assets](docs/release.md#release-artifacts).
 
-Framework-independent account identity, Argon2 password hashing, short-lived signed access tokens,
-durable accounts, and explicit profile ownership are implemented. Account registration does not
-create a wellness profile: authentication establishes identity, while a separate
-`UserId -> ProfileId` mapping establishes authorization context. Password reset, email verification,
-MFA, refresh-token rotation, cloud synchronization, correlations, recommendations, predictions,
-direct wearable integrations, vendor-specific wellness export compatibility, notifications,
-production monitoring, mobile applications, and medical decision support remain outside MVP1.
-
-LifeLenz-AI includes a versioned FastAPI API with public system metadata, liveness, and
-SQLite-readiness endpoints; account registration and login; bearer-protected current-user retrieval;
-explicit primary-profile onboarding and replacement; owned wellness-record creation, listing,
-retrieval, correction, and deletion for all ten current record types; authenticated CSV schema v1
-validate/commit ingestion for six stable record categories; wellness-goal management; and
-deterministic structured wellness summaries. Every wellness-resource route requires bearer
-authentication and resolves ownership from the account; clients cannot choose a profile identifier.
-CSV v1 provides row-level validation, semantic duplicate detection, canonical-unit normalization,
-and `csv_import` provenance. The local SQLite content is not encrypted.
-
-A React and TypeScript web application provides a restrained public landing page, account
-registration and login, authoritative current-user restoration, protected routing, first-time
-wellness-profile onboarding, profile-preference editing, and a responsive authenticated application
-shell. Its dashboard presents real structured wellness summaries when records exist and an honest
-empty state when they do not. Descriptive analytics show server-derived record/metric coverage,
-baseline ranges with minimum/maximum plus mean/median markers, and mathematical trend details using
-first/last values and change. These visuals do not invent time-series samples, evaluate health, or
-recommend targets. Summary measurements remain in the backend's canonical units; the stored
-measurement-system preference does not yet convert them in the browser.
-
-Manual record entry supports all ten current record types: Sleep, Daily Activity, Workout,
-Hydration, Meal, Daily Nutrition, Body Measurement, Subjective Wellness Check-In, Menstrual
-Bleeding, and Menstrual Cycle. Recent and full record history cover the same types, with
-record-type/date filtering, owned-record correction, and deliberate confirmed deletion. A protected
-CSV workflow supports local file selection, server validation, issue and duplicate review, and
-explicit import for the six CSV v1 categories. Authenticated wellness-goal management supports
-listing, creation, full-field replacement, status changes, and deliberate confirmed deletion.
-
-A CI-enforced real-browser critical journey composes registration, login, profile onboarding,
-record creation/correction/deletion, CSV validation/import, dashboard refresh, goal creation,
-logout, protected-route redirection, and keyboard skip navigation against live FastAPI, SQLite,
-and a built Vite application. A provider-neutral Docker Compose deployment builds separate
-unprivileged API and web containers, exposes only the same-origin web gateway, persists SQLite in a
-named volume, applies a browser-facing security-header baseline, and fails closed on unsafe
-production configuration. The SQLite maintenance helper provides tested backup, verify, and restore
-operations, and release validation destroys the original disposable data volume, restores an
-exported backup into fresh storage, and proves the same synthetic account can authenticate afterward.
-
-This release does **not** claim unrestricted public production readiness. Public HTTPS/HSTS,
-off-host backup retention and encryption policy, host/secret/database access ownership, production
-monitoring and alerting, rate limiting/abuse controls, formal accessibility certification,
-regulatory compliance, and medical-device readiness remain outside the repository's automated
-release evidence.
-
-The MVP1 capability areas are:
-
-- structured records for sleep, activity, hydration, basic nutrition, body measurements,
-  mood, energy, and stress;
-- personal profiles and goals;
-- personal-baseline analytics and trend summaries;
-- deterministic, explainable wellness observations;
-- typed wellness summaries;
-- authenticated browser workflows for entry, history, correction, deletion, CSV import, and goals;
-- a production-shaped single-host deployment with tested SQLite recovery;
-- reproducible release artifacts and exact-source release validation.
-
-Direct wearable connections, vendor-specific formats, broad wellness-platform integrations, and
-advanced predictive/recommendation capabilities remain future work.
+Stored measurement-system, time-zone, and week-start preferences do not implement summary unit
+conversion or local-calendar grouping. Individual record deletion does not provide account deletion
+or complete personal-data export. Richer insight rules, weekly narratives, correlations, wearable
+integrations, forecasting, recommendations, ML inference, and LLM explanations remain future work.
+See [Product scope](docs/product-scope.md) for the complete capability boundaries.
 
 ## Architecture
 
-The backend uses a layered, standard-library-first design. Domain types and validation form the base;
-repository abstractions manage records; pure analytics calculate baselines and trends; deterministic
-rules produce explainable observations; and services coordinate these parts into summaries. The
-`web/` application is a separate Vite build with a typed API-client boundary, centralized
-authentication state, TanStack Query server-state orchestration, React Router routes, and lightweight
-CSS design tokens. The backend remains authoritative for identity and wellness data.
+The React/TypeScript/Vite browser application uses React Router, TanStack Query, and a typed API
+client. In the Compose deployment, an unprivileged Nginx gateway serves static assets and proxies
+same-origin `/api` calls to an internal FastAPI application. Authenticated application services
+resolve profile ownership and coordinate repository contracts, domain validation, CSV ingestion,
+and deterministic analytics. SQLite adapters persist accounts, ownership, profiles, goals, and
+records through explicit serialization and schema migrations.
 
-See [Architecture](docs/architecture.md) for the intended dependency direction and design decisions.
+Analytics calculate count, mean, median, minimum, maximum, population standard deviation, and
+mathematical endpoint change/slope. The summary service assembles those results into typed data;
+there is no separate implemented insight-rule engine. Successful record mutations and CSV imports
+invalidate browser record and summary queries so subsequent reads retrieve current server results.
+
+The database is not encrypted by this implementation. Run one API instance per SQLite database
+volume; horizontal scaling, high availability, and managed failover are outside this architecture.
+External HTTPS/HSTS, off-host backup retention/encryption/access policy, monitoring, incident response,
+and abuse controls remain operator responsibilities. Successful repository validation does not
+establish unrestricted public-production readiness.
+
+See [Architecture](docs/architecture.md) for runtime flow, source dependency direction, and contracts.
 
 ## Development setup
 
@@ -235,11 +170,14 @@ pinned Playwright Chromium runtime, and drives the critical synthetic MVP journe
 `Deployment Validation` independently builds and boots the production Compose stack, verifies
 production configuration rejection, gateway/API readiness, security headers, authentication,
 SQLite persistence across restart, and disabled production documentation. `MVP1 Release Validation`
-validates the final release contract, builds release artifacts and SHA-256 checksums, and proves
-backup/restore after destruction of the original disposable data volume. A tag-triggered run also
-requires the tag to match the manifest and belong to `main` history. Only after validation succeeds
+validates the final release contract, builds flat release assets, verifies their SHA-256 checksums
+and a fresh flat download layout, and proves backup/restore after destruction of the original
+disposable data volume. A tag-triggered run also requires the tag to match the manifest and
+belong to `main` history. Only after validation succeeds
 does a separate tag-only publishing job receive `contents: write` permission and create the GitHub
-Release from the validated artifact bundle. The temporary SQLite backup is not retained.
+Release from the downloaded, reverified artifact bundle without rebuilding payloads. The temporary
+SQLite backup is not retained. See the [release workflow](.github/workflows/release.yml) and
+[release guide](docs/release.md) for publication and asset-verification details.
 
 Dependabot checks Python, GitHub Actions, and npm dependencies under `/web` weekly. GitGuardian
 remains a complementary external secret-scanning check. These automated checks are not a formal
@@ -313,7 +251,8 @@ server-controlled record ID, concrete type, and original source provenance. Cros
 lookups and mutations return the same not-found response as nonexistent records to avoid revealing
 resource existence. CSV imports derive profile ownership from the authenticated account and support
 schema v1 validation and explicit commit for six categories; duplicate rows are skipped separately
-from validation errors.
+from validation errors. All ready rows persist in one atomic batch; storage failure returns HTTP
+503 after rollback, preserving pre-existing records. Validate mode never writes records.
 
 Goal routes also derive the primary profile from the authenticated account. They support create,
 list, read, immutable replacement, and deletion through the existing goal application/repository
@@ -336,8 +275,8 @@ More contributor guidance is available in [Development standards](docs/developme
 
 ## Documentation
 
-- [Product scope](docs/product-scope.md) defines the intended users, MVP, non-goals, and safety boundary.
-- [Architecture](docs/architecture.md) describes the intended first-phase design.
+- [Product scope](docs/product-scope.md) separates implemented MVP1 capabilities from future direction and defines the safety boundary.
+- [Architecture](docs/architecture.md) describes the implemented runtime, packages, dependency direction, and persistence contracts.
 - [Development standards](docs/development.md) defines the contributor workflow and engineering expectations.
 - [CSV schema v1](docs/csv-import-v1.md) documents supported categories, exact headers, validation, normalization, and duplicate semantics.
 - [Browser end-to-end validation](docs/browser-e2e.md) documents the isolated Chromium critical-path journey and its CI/local runtime contract.
