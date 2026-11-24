@@ -216,6 +216,31 @@ an active GitHub ruleset for `main` requiring PRs, two approvals, required check
 bypass restrictions. This tooling neither configures nor asserts that such a ruleset already
 exists or is enforced. GitHub-hosted squash merges are unaffected by local commit hooks.
 
+### Hosted Git guard validation
+
+The [CI workflow](../.github/workflows/ci.yml) adds an independent **Git Guards (Windows)**
+job on Windows Server 2025 (`windows-2025`) with Python 3.13 and native PowerShell Core.
+It runs the existing guard suite from the real repository root on every CI event: pull
+requests, pushes to `main`, and manual runs. Existing Linux full-test, coverage, and
+security-invariant jobs retain coverage of the same suite, including POSIX-specific
+filesystem executability checks.
+
+The Windows job exercises command-line Git and installer behavior using isolated local
+repositories/remotes, including rollback, commit/push rejection, and normal feature/tag
+operations. The actual-repository regression also checks the source checkout's index entries
+for committed hook mode `100755`. Windows validation does not establish POSIX filesystem
+execute-bit enforcement.
+
+Hosted tests do not repair source hook modes or activate guards in the real runner checkout;
+installation remains confined to synthetic repositories. Developer installation remains opt-in
+per clone. GitHub Desktop UI execution is still a manual check: automated Windows CLI testing
+is not a Desktop UI test. Workflow success also does not configure or establish server-side
+`main` protection.
+
+The new hosted Windows result remains pending until the eventual PR's job actually passes.
+Local results do not substitute for it; all existing hosted gates and the new Windows job
+must pass before merge.
+
 ### Uninstall and recovery
 
 Inspect the local/effective settings before changing them:
