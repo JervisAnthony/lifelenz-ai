@@ -20,6 +20,9 @@ jobs:
     timeout-minutes: 35
     permissions:
       contents: read
+      actions: read
+    outputs:
+      release-artifact-id: ${{ steps.upload-release-artifacts.outputs.artifact-id }}
     env:
       LIFELENZ_IMAGE_TAG: mvp1-0.1.0
       LIFELENZ_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -251,12 +254,24 @@ jobs:
           rm -f "$RUNNER_TEMP/lifelenz-release-backup.db"
 
       - name: Upload validated release artifacts
+        id: upload-release-artifacts
         uses: actions/upload-artifact@v7
         with:
           name: lifelenz-mvp1-0.1.0
           if-no-files-found: error
           retention-days: 30
           path: release-bundle/*
+
+      - name: Validate uploaded release artifact ID
+        env:
+          LIFELENZ_RELEASE_ARTIFACT_ID: ${{ steps.upload-release-artifacts.outputs.artifact-id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$LIFELENZ_RELEASE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Expected exactly one positive decimal release artifact ID." >&2
+            exit 1
+          fi
 
       - name: Prepare release artifact download directory
         id: release-artifact-download-dir
@@ -269,7 +284,10 @@ jobs:
       - name: Download uploaded release artifacts
         uses: actions/download-artifact@v7
         with:
-          name: lifelenz-mvp1-0.1.0
+          artifact-ids: ${{ steps.upload-release-artifacts.outputs.artifact-id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
           path: ${{ steps.release-artifact-download-dir.outputs.path }}
 
       - name: Verify uploaded release artifact round trip
@@ -299,6 +317,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v7
@@ -310,10 +329,24 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Validate release artifact ID for publication
+        env:
+          LIFELENZ_RELEASE_ARTIFACT_ID: ${{ needs.validate-release.outputs.release-artifact-id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$LIFELENZ_RELEASE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Expected exactly one positive decimal release artifact ID." >&2
+            exit 1
+          fi
+
       - name: Download validated release artifacts
         uses: actions/download-artifact@v7
         with:
-          name: lifelenz-mvp1-0.1.0
+          artifact-ids: ${{ needs.validate-release.outputs.release-artifact-id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
           path: release-bundle
 
       - name: Publish immutable GitHub Release
