@@ -39,7 +39,7 @@ The validation job:
 11. verifies that the same synthetic account can authenticate from the restored database;
 12. uploads the validated release bundle as the named `lifelenz-mvp1-0.1.0` GitHub Actions artifact;
 13. validates the upload's artifact ID as exactly one positive decimal integer;
-14. creates a fresh, empty directory under `RUNNER_TEMP` and downloads that exact artifact from the same repository/run using authenticated `actions/download-artifact@v7` lookup;
+14. creates a fresh, empty directory under `RUNNER_TEMP`, requires archive readiness, and downloads that exact artifact from the same repository/run using authenticated `actions/download-artifact@v7` lookup;
 15. verifies the downloaded bundle's exact flat contents and checksums, then compares its `SHA256SUMS` byte-for-byte with the original bundle's manifest.
 
 This hosted upload/download verification is mandatory on pull-request, `main`, manual, and tag validation runs. A missing artifact, unexpected or nested files, altered payloads, invalid checksums, or a different checksum manifest fails `validate-release`. Failure prevents validation succeeding and therefore blocks tag publication. The earlier local canonical-bundle and copied flat-layout checks remain additional checks; a local copy does not prove a GitHub artifact round trip. Hosted evidence is established only when the workflow actually passes.
@@ -50,6 +50,26 @@ exposes it as `release-artifact-id`, which the tag-only publishing job receives 
 check requires exactly one positive decimal integer. Missing, zero, negative, whitespace-containing,
 comma-separated, or otherwise malformed IDs fail before the download action runs. Neither download
 falls back to artifact-name, pattern, or all-artifact selection.
+
+Immediately before **both** download actions, the mandatory
+[readiness helper](../scripts/wait_for_release_artifact.py) probes GitHub's artifact ZIP endpoint
+with an authenticated GET using only the step-scoped `GH_TOKEN` and actual upload-produced ID.
+It validates the repository, ID, and credentials before making requests, disables automatic
+redirects, and accepts only HTTP 302 with a nonempty `Location` as ready. It neither follows nor
+prints the signed redirect URL and does not read response bodies or print response headers.
+
+Only HTTP 404 is retried: at most five attempts, a five-second timeout per request, and five
+seconds between attempts (at most four sleeps). Authentication/authorization failures, all other
+HTTP statuses, malformed responses or missing redirect locations, and network/timeout errors fail
+immediately. Exhausting the 404 budget also fails. Readiness failure blocks the download and
+publication; there are no retries around bundle verification or integrity failures, and the
+helper makes no API writes or artifact deletions.
+
+Observed evidence showed that artifact lookup succeeded while its archive endpoint returned 404;
+a later authenticated download and checksum verification succeeded. This does not establish the
+underlying service cause. The bounded probe addresses that observed readiness boundary without
+guaranteeing a subsequent download will succeed. Both downloads, the fresh flat destination,
+exact-file verifier, SHA256SUMS checks, and checksum-manifest comparison remain mandatory.
 
 Both downloads supply `artifact-ids`, `github-token: github.token`, `repository: github.repository`,
 and `run-id: github.run_id` as action inputs (the values use GitHub expressions). This explicitly
@@ -67,7 +87,7 @@ cause or guarantee service availability.
 
 When the workflow is triggered by `v0.1.0`, it additionally verifies that the tagged commit belongs to `main` history. Only after the validation job succeeds does a separate least-privilege publishing job receive `contents: write` permission and create the GitHub Release from the validated artifact bundle.
 
-The publishing job does not build a second, unvalidated copy of the application. It validates the propagated artifact ID, independently downloads that exact artifact from the successful validation job, verifies the exact bundle contents and SHA-256 checksums again, and attaches those exact files to the GitHub Release.
+The publishing job does not build a second, unvalidated copy of the application. It validates the propagated artifact ID, requires archive readiness, independently downloads that exact artifact from the successful validation job, verifies the exact bundle contents and SHA-256 checksums again, and attaches those exact files to the GitHub Release.
 
 ## Release artifacts
 
