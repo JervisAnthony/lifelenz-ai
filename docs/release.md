@@ -38,15 +38,56 @@ The validation job:
 10. restores the backup into fresh storage;
 11. verifies that the same synthetic account can authenticate from the restored database;
 12. uploads the validated release bundle as the named `lifelenz-mvp1-0.1.0` GitHub Actions artifact;
-13. creates a fresh, empty download directory under `RUNNER_TEMP`;
-14. downloads that single artifact from the same workflow run using `actions/download-artifact@v7`;
+13. validates the upload's artifact ID as exactly one positive decimal integer;
+14. creates a fresh, empty directory under `RUNNER_TEMP`, requires archive readiness, and downloads that exact artifact from the same repository/run using authenticated `actions/download-artifact@v7` lookup;
 15. verifies the downloaded bundle's exact flat contents and checksums, then compares its `SHA256SUMS` byte-for-byte with the original bundle's manifest.
 
 This hosted upload/download verification is mandatory on pull-request, `main`, manual, and tag validation runs. A missing artifact, unexpected or nested files, altered payloads, invalid checksums, or a different checksum manifest fails `validate-release`. Failure prevents validation succeeding and therefore blocks tag publication. The earlier local canonical-bundle and copied flat-layout checks remain additional checks; a local copy does not prove a GitHub artifact round trip. Hosted evidence is established only when the workflow actually passes.
 
+The upload step's `artifact-id` is the identity used by both downloads. The validation job
+exposes it as `release-artifact-id`, which the tag-only publishing job receives through
+`needs.validate-release.outputs.release-artifact-id`. Before each download, a mandatory Bash
+check requires exactly one positive decimal integer. Missing, zero, negative, whitespace-containing,
+comma-separated, or otherwise malformed IDs fail before the download action runs. Neither download
+falls back to artifact-name, pattern, or all-artifact selection.
+
+Immediately before **both** download actions, the mandatory
+[readiness helper](../scripts/wait_for_release_artifact.py) probes GitHub's artifact ZIP endpoint
+with an authenticated GET using only the step-scoped `GH_TOKEN` and actual upload-produced ID.
+It validates the repository, ID, and credentials before making requests, disables automatic
+redirects, and accepts only HTTP 302 with a nonempty `Location` as ready. It neither follows nor
+prints the signed redirect URL and does not read response bodies or print response headers.
+
+Only HTTP 404 is retried: at most five attempts, a five-second timeout per request, and five
+seconds between attempts (at most four sleeps). Authentication/authorization failures, all other
+HTTP statuses, malformed responses or missing redirect locations, and network/timeout errors fail
+immediately. Exhausting the 404 budget also fails. Readiness failure blocks the download and
+publication; there are no retries around bundle verification or integrity failures, and the
+helper makes no API writes or artifact deletions.
+
+Observed evidence showed that artifact lookup succeeded while its archive endpoint returned 404;
+a later authenticated download and checksum verification succeeded. This does not establish the
+underlying service cause. The bounded probe addresses that observed readiness boundary without
+guaranteeing a subsequent download will succeed. Both downloads, the fresh flat destination,
+exact-file verifier, SHA256SUMS checks, and checksum-manifest comparison remain mandatory.
+
+Both downloads supply `artifact-ids`, `github-token: github.token`, `repository: github.repository`,
+and `run-id: github.run_id` as action inputs (the values use GitHub expressions). This explicitly
+binds authenticated lookup to the same repository and workflow run. Each job grants only the
+additional `actions: read` permission needed for lookup, alongside its existing contents scope;
+tokens are passed only to the steps that need them. The
+[v7 download implementation](https://github.com/actions/download-artifact/blob/v7/src/download-artifact.ts)
+extracts a single matched ID directly into the requested path, preserving the flat destination
+without merging unrelated artifacts.
+
+The corrected authenticated path still requires hosted evidence on the eventual PR and on the
+exact squash-merged `main` source. A green PR run alone is insufficient evidence for the merged
+source. ID-based selection clarifies artifact identity; it does not prove a GitHub service root
+cause or guarantee service availability.
+
 When the workflow is triggered by `v0.1.0`, it additionally verifies that the tagged commit belongs to `main` history. Only after the validation job succeeds does a separate least-privilege publishing job receive `contents: write` permission and create the GitHub Release from the validated artifact bundle.
 
-The publishing job does not build a second, unvalidated copy of the application. It independently downloads the release artifacts produced by the successful validation job, verifies the exact bundle contents and SHA-256 checksums again, and attaches those exact files to the GitHub Release.
+The publishing job does not build a second, unvalidated copy of the application. It validates the propagated artifact ID, requires archive readiness, independently downloads that exact artifact from the successful validation job, verifies the exact bundle contents and SHA-256 checksums again, and attaches those exact files to the GitHub Release.
 
 ## Release artifacts
 
@@ -82,9 +123,10 @@ sha256sum -c SHA256SUMS
 itself. To additionally reject extra files, duplicate entries, and unsafe paths, run
 `python /path/to/reviewed/source/scripts/release_bundle.py verify .`.
 Before upload, the workflow verifies the canonical bundle and a locally copied flat layout.
-After upload, PR, `main`, manual, and tag validation runs download the same-run artifact into
-an empty directory and run `scripts/release_bundle.py verify` there to reject missing,
-unexpected, nested, or invalid files. They also run `sha256sum -c SHA256SUMS` inside that
+After upload, PR, `main`, manual, and tag validation runs download the single uploaded artifact
+by its validated ID into the fresh, empty directory and run `scripts/release_bundle.py verify`
+there to reject missing, unexpected, nested, or invalid files. They also run
+`sha256sum -c SHA256SUMS` inside that
 directory and use `cmp` to require its checksum manifest to match `release-bundle/SHA256SUMS`
 byte-for-byte. This ties the independently verified downloaded payloads to the original bundle.
 The tag-only publishing job retains its separate download and revalidation, then publishes
@@ -108,6 +150,9 @@ A release tag must not be moved after publication. A defect discovered after rel
 ## Public-host boundary
 
 A repository release and a public production deployment are separate decisions.
+
+Release validation also does not exercise GitHub Desktop UI behavior; that remains a separate
+manual verification.
 
 Before exposing LifeLenz to external beta users, the operator still owns:
 
