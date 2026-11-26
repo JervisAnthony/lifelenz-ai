@@ -85,7 +85,47 @@ exact squash-merged `main` source. A green PR run alone is insufficient evidence
 source. ID-based selection clarifies artifact identity; it does not prove a GitHub service root
 cause or guarantee service availability.
 
-When the workflow is triggered by `v0.1.0`, it additionally verifies that the tagged commit belongs to `main` history. Only after the validation job succeeds does a separate least-privilege publishing job receive `contents: write` permission and create the GitHub Release from the validated artifact bundle.
+When the workflow is triggered by `v0.1.0`, it additionally verifies that the tagged commit belongs to `main` history and requires successful main-push workflow evidence for that exact full source SHA. Membership in main history alone does not prove CI passed. Only after the validation job succeeds does a separate least-privilege publishing job receive `contents: write` permission and create the GitHub Release from the validated artifact bundle.
+
+The mandatory [source CI helper](../scripts/check_release_source_ci.py) runs twice on tags:
+immediately after the main-history check, before Python/web builds, using
+`LIFELENZ_RELEASE_SOURCE_SHA`; and after artifact download, immediately before publication,
+using the checked-out `GITHUB_SHA`. Both calls require the same exact tagged source, rather
+than main's current tip, a PR merge SHA, or an equivalent tree. PR, main-push, and manual
+release validation do not call this gate. A main-push release run therefore never waits for
+itself; the tag run requires an earlier main-push release run and cannot substitute itself.
+
+Using the read-only [GitHub workflow-runs API](https://docs.github.com/en/rest/actions/workflow-runs),
+the helper requires these repository paths, independently of display names:
+
+- `.github/workflows/ci.yml`;
+- `.github/workflows/deployment.yml`;
+- `.github/workflows/release.yml`.
+
+For each workflow it selects the latest matching main-push run by `run_number`, across the
+complete filtered listing, regardless of status. It validates repository, full SHA, push event,
+main branch, workflow path, positive integer identities and attempt, then re-fetches each selected
+run to require a consistent identity/attempt and current `completed` / `success` result. Only the
+canonical workflow path and its documented `@main` or `@refs/heads/main` suffix are accepted.
+A newer failed, cancelled, skipped, or pending run blocks release even if an older run succeeded;
+a changed attempt also blocks that invocation. Missing evidence, malformed or ambiguous results,
+inconsistent/truncated pagination, more than 1,000 results, HTTP/authentication failures, redirects,
+and network/timeout errors all fail closed. There is no success fallback or configurable bypass.
+
+Credentials come exclusively from step-scoped `GH_TOKEN`. Requests are authenticated GETs to
+the fixed GitHub API, with 10-second timeouts and bounded response sizes. The helper never follows
+redirects or response-supplied URLs, prints credentials or response data, polls, retries, sleeps,
+dispatches, or reruns workflows. Missing/incomplete main evidence requires completing or explicitly
+rerunning the existing main workflow; this helper never initiates that action. Either tag gate's
+failure blocks publication, with bundle verification and checksum checks still mandatory afterward.
+
+This is a point-in-time workflow-level success check. It does not independently audit every job,
+prove independent approvals, enforce branch protection, establish secret-scanner coverage, or
+certify public-host readiness. It is not an atomic lock against later reruns or changes after the
+read. Those review, security, Windows Git guard, accessibility, and operational requirements remain
+separate release obligations. Offline mock tests and green PR/main runs do not prove the tag-only
+integration executed: the two new invocations remain unexecuted until an authorized future tag run.
+This change neither publishes `v0.1.0` nor authorizes publication.
 
 The publishing job does not build a second, unvalidated copy of the application. It validates the propagated artifact ID, requires archive readiness, independently downloads that exact artifact from the successful validation job, verifies the exact bundle contents and SHA-256 checksums again, and attaches those exact files to the GitHub Release.
 
@@ -138,11 +178,11 @@ The temporary SQLite database used to prove backup and restore is never retained
 
 The intended promotion sequence is:
 
-1. merge the Commit 41 hardening pull request after the required reviews and all exact-head gates pass;
-2. confirm the merged `main` state containing both Commit 41 fixes remains green;
-3. create Git tag `v0.1.0` on that reviewed merged commit;
-4. allow the tag-triggered `MVP1 Release` workflow to rebuild and validate the exact tagged source;
-5. publish the GitHub Release only after release validation succeeds;
+1. merge the final release changes after required independent reviews and all exact-head gates pass;
+2. confirm the final reviewed merged source has successful exact-SHA main-push CI, Deployment Validation, and MVP1 Release evidence, alongside all separate release-readiness requirements;
+3. when separately authorized, create Git tag `v0.1.0` on that reviewed merged commit;
+4. allow the tag-triggered `MVP1 Release` workflow to check that source's main-push evidence, rebuild, and validate the exact tagged source;
+5. publish the GitHub Release only after release validation and the publication source-evidence recheck succeed;
 6. verify the resulting release assets and checksums.
 
 A release tag must not be moved after publication. A defect discovered after release should be corrected through a new version rather than rewriting `v0.1.0`.

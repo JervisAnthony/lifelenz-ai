@@ -14,10 +14,46 @@ Before promoting MVP1:
 - Python quality, Python 3.13 tests, coverage, persistence/migration, API/authentication, and package-integrity jobs must pass;
 - the Node.js 22 web job must pass linting, formatting, strict TypeScript, unit/component tests, and the production build;
 - the real Chromium Browser E2E journey must pass;
+- Windows Git Guards must pass; GitHub Desktop behavior still requires separate manual verification;
 - Deployment Validation must build and smoke-test the production Compose stack successfully;
 - MVP1 Release Validation must validate final release metadata, build release artifacts, and complete the SQLite backup/restore drill successfully.
 
 A failing gate is release-blocking. Do not lower or bypass a gate to complete a release.
+
+## Exact-source main-push evidence
+
+Release the final reviewed merged source after its exact full SHA has successful main-push
+results for `.github/workflows/ci.yml`, `.github/workflows/deployment.yml`, and
+`.github/workflows/release.yml`. Main ancestry alone, green PR results, equivalent trees,
+manual runs, feature/tag pushes, and results from other repositories or SHAs are insufficient.
+
+The [source CI helper](../scripts/check_release_source_ci.py) identifies workflows by repository
+path, never display name. It retrieves the complete filtered listing (up to ten pages of 100),
+selects each workflow's latest `run_number` regardless of status, and re-fetches that run to
+validate its identity, unchanged current attempt, and `completed` / `success` result. Accepted
+paths are canonical or suffixed with `@main` / `@refs/heads/main`. A newer failed, pending,
+cancelled, skipped, or otherwise unsuccessful run cannot fall back to an older success.
+Missing, malformed, ambiguous, incomplete, or changed evidence and API/auth/network failures
+block release. Complete or explicitly rerun the existing main workflow when evidence is
+missing/incomplete; the helper never retries, polls, sleeps, dispatches, or reruns it.
+
+Two mandatory tag-only calls enforce this: in `validate-release`, immediately after the tag's
+main-history check and before builds, using `LIFELENZ_RELEASE_SOURCE_SHA`; and in the tag-only
+publisher after artifact download, immediately before publication, using checked-out `GITHUB_SHA`.
+Both use only a step-scoped token with existing `actions: read` access. A failure blocks
+publication; the publisher still depends on successful validation and must verify exact bundle
+contents and checksums. PR, main-push, and manual release validation skip these API calls so
+main release validation never waits for itself. The current tag run cannot supply the earlier
+main-push release evidence.
+
+This workflow-level gate does not independently audit every job, prove approvals, enforce branch
+protection, establish GitGuardian/secret-scanning coverage, or certify public-host readiness.
+All separate requirements above and below remain mandatory. The API check is a point-in-time
+read, not an atomic lock against future reruns or changes after the read.
+
+The new tag-gated integration remains unexecuted until an authorized future tag run. Offline
+mock tests and successful PR/main runs do not prove those tag-only steps executed. This work
+does not establish that `v0.1.0` is published or authorize tag creation or publication.
 
 ## Final release metadata gates
 
